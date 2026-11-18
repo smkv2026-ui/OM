@@ -1,0 +1,443 @@
+[
+  {
+    "id": "prasna-upanishad",
+    "title": "Praśna Upaniṣad",
+    "deva": "प्रश्नोपनिषद्",
+    "category": "Upanishad",
+    "tradition": "Atharvaveda · one of the principal (mukhya) Upaniṣads",
+    "summary": "Six seekers bring six questions to the sage Pippalāda. The Third Question (asked by Kausalya Āśvalāyana) is the classic Upaniṣadic teaching on prāṇa: where it comes from, how it enters the body, how it divides itself into five, where each one dwells, and how it departs.",
+    "keyTeachings": [
+      "Prāṇa is born from the Self, as a shadow is cast by a person.",
+      "Like a king appointing officers to different villages, the chief prāṇa assigns the other breaths to their stations.",
+      "Apāna dwells in the organs of excretion and generation; Prāṇa itself in the eye, ear, mouth and nose; Samāna in the middle, distributing nourishment evenly.",
+      "The Self dwells in the heart, from which 101 nāḍīs branch, each into a hundred, each of those into 72,000 — in these moves Vyāna.",
+      "Udāna rises through one channel and leads upward."
+    ],
+    "relevance": "The source of the five-prāṇa map in Fig. 4.3. The 'one' rising channel of 3.7 is traditionally connected with Suṣumnā.",
+    "chakras": ["anahata", "manipura", "muladhara", "vishuddha"],
+    "pranas": ["prana", "apana", "samana", "udana", "vyana"],
+    "nadis": ["sushumna"],
+    "verses": [
+      {
+        "sanskrit": "पायूपस्थेऽपानं चक्षुःश्रोत्रे मुखनासिकाभ्यां प्राणः स्वयं प्रातिष्ठते मध्ये तु समानः । एष ह्येतद्धुतमन्नं समं नयति तस्मादेताः सप्तार्चिषो भवन्ति ॥",
+        "transliteration": "pāyūpasthe 'pānaṃ cakṣuḥśrotre mukhanāsikābhyāṃ prāṇaḥ svayaṃ prātiṣṭhate madhye tu samānaḥ | eṣa hy etad dhutam annaṃ samaṃ nayati tasmād etāḥ saptārciṣo bhavanti ||",
+        "translation": "Apāna is in the organs of excretion and generation. Prāṇa itself abides in the eye and ear, and in the mouth and nose. In the middle is Samāna, for it brings to equality the food offered — from this arise the seven flames.",
+        "citation": "Praśna Upaniṣad 3.5"
+      },
+      {
+        "sanskrit": "हृदि ह्येष आत्मा । अत्रैतदेकशतं नाडीनां तासां शतं शतमेकैकस्यां द्वासप्ततिर्द्वासप्ततिः प्रतिशाखानाडीसहस्राणि भवन्त्यासु व्यानश्चरति ॥",
+        "transliteration": "hṛdi hy eṣa ātmā | atraitad ekaśataṃ nāḍīnāṃ tāsāṃ śataṃ śatam ekaikasyāṃ dvāsaptatir dvāsaptatiḥ pratiśākhānāḍīsahasrāṇi bhavanty āsu vyānaś carati ||",
+        "translation": "This Self is in the heart. Here are the hundred and one nāḍīs; each of them has a hundred branches, and each of those seventy-two thousand sub-branches. In these moves Vyāna.",
+        "citation": "Praśna Upaniṣad 3.6"
+      },
+      {
+        "sanskrit": "अथैकयोर्ध्व उदानः पुण्येन पुण्यं लोकं नयति पापेन पापमुभाभ्यामेव मनुष्यलोकम् ॥",
+        "transliteration": "athaikayordhva udānaḥ puṇyena puṇyaṃ lokaṃ nayati pāpena pāpam ubhābhyām eva manuṣyalokam ||",
+        "translation": "Then, rising upward through one (of these nāḍīs), Udāna leads by merit to a world of merit, by demerit to a world of demerit, and by both to the human world.",
+        "citation": "Praśna Upaniṣad 3.7"
+      }
+    ],
+    "related": ["katha-upanishad", "chandogya-upanishad", "mundaka-upanishad", "shandilya-upanishad"],
+    "needsVerification": false
+  },
+  {
+    "id": "katha-upanishad",
+    "title": "Kaṭha Upaniṣad",
+    "deva": "कठोपनिषद्",
+    "category": "Upanishad",
+    "tradition": "Kṛṣṇa Yajurveda · principal Upaniṣad",
+    "summary": "The dialogue of the boy Naciketas with Yama, Death. It contains the image of the body as a chariot, an early definition of yoga as the steady holding of the senses, and the famous verse on the hundred-and-one channels of the heart, one of which rises to the crown.",
+    "keyTeachings": [
+      "The Self is the rider, the body the chariot, the intellect the charioteer, the mind the reins.",
+      "Yoga is the firm holding of the senses (dhāraṇā of the indriyas).",
+      "Of the 101 heart-channels, one rises to the crown; going up by it one reaches immortality."
+    ],
+    "relevance": "The Upaniṣadic root of the idea of a single central, upward channel — later identified with Suṣumnā and the Brahmarandhra at Sahasrāra.",
+    "chakras": ["anahata", "sahasrara"],
+    "pranas": ["udana"],
+    "nadis": ["sushumna"],
+    "verses": [
+      {
+        "sanskrit": "शतं चैका च हृदयस्य नाड्यस्तासां मूर्धानमभिनिःसृतैका । तयोर्ध्वमायन्नमृतत्वमेति विष्वङ्ङन्या उत्क्रमणे भवन्ति ॥",
+        "transliteration": "śataṃ caikā ca hṛdayasya nāḍyas tāsāṃ mūrdhānam abhiniḥsṛtaikā | tayordhvam āyann amṛtatvam eti viṣvaṅṅ anyā utkramaṇe bhavanti ||",
+        "translation": "A hundred and one are the channels of the heart; of these one passes up to the crown of the head. Going upward by it one reaches immortality; the others, going in all directions, serve for departing.",
+        "citation": "Kaṭha Upaniṣad 2.3.16 (numbered 6.16 in editions that count continuously)"
+      }
+    ],
+    "related": ["chandogya-upanishad", "prasna-upanishad", "maitri-upanishad"],
+    "needsVerification": false
+  },
+  {
+    "id": "chandogya-upanishad",
+    "title": "Chāndogya Upaniṣad",
+    "deva": "छान्दोग्योपनिषद्",
+    "category": "Upanishad",
+    "tradition": "Sāmaveda · principal Upaniṣad",
+    "summary": "One of the oldest Upaniṣads. Its eighth chapter teaches the 'small space within the heart' (dahara-ākāśa) and describes the channels of the heart filled with colours, through which the rays of the sun enter; it repeats the verse on the one channel that rises to the crown.",
+    "keyTeachings": [
+      "Within the city of the body is a small lotus-dwelling, the heart; within it a small space that contains everything.",
+      "The heart's channels are like rays of the sun, linking the person and the sun.",
+      "One channel rises to the crown; by it one goes to immortality."
+    ],
+    "relevance": "Heart-centred nāḍī teaching; the same 101-channel verse as the Kaṭha.",
+    "chakras": ["anahata", "sahasrara"],
+    "pranas": [],
+    "nadis": ["sushumna"],
+    "verses": [
+      {
+        "sanskrit": "शतं चैका च हृदयस्य नाड्यस्तासां मूर्धानमभिनिःसृतैका । तयोर्ध्वमायन्नमृतत्वमेति विष्वङ्ङन्या उत्क्रमणे भवन्त्युत्क्रमणे भवन्ति ॥",
+        "transliteration": "śataṃ caikā ca hṛdayasya nāḍyas tāsāṃ mūrdhānam abhiniḥsṛtaikā | tayordhvam āyann amṛtatvam eti viṣvaṅṅ anyā utkramaṇe bhavanty utkramaṇe bhavanti ||",
+        "translation": "A hundred and one are the channels of the heart; one of them passes up to the crown. Going up by it one reaches immortality; the others, going in every direction, are for departing.",
+        "citation": "Chāndogya Upaniṣad 8.6.6"
+      }
+    ],
+    "related": ["katha-upanishad", "brihadaranyaka-upanishad"],
+    "needsVerification": false
+  },
+  {
+    "id": "mundaka-upanishad",
+    "title": "Muṇḍaka Upaniṣad",
+    "deva": "मुण्डकोपनिषद्",
+    "category": "Upanishad",
+    "tradition": "Atharvaveda · principal Upaniṣad",
+    "summary": "Distinguishes higher and lower knowledge and gives the image of Om as the bow, the self as the arrow and Brahman as the target. One verse places the Self where the channels of the heart converge like spokes in a hub.",
+    "keyTeachings": [
+      "Om is the bow, the self the arrow, Brahman the target.",
+      "Where the channels meet like spokes in the hub of a wheel, there the Self moves within, being born in many ways."
+    ],
+    "relevance": "The heart as the hub of the nāḍīs; meditation on Om.",
+    "chakras": ["anahata"],
+    "pranas": ["vyana"],
+    "nadis": ["sushumna"],
+    "verses": [
+      {
+        "sanskrit": "अरा इव रथनाभौ संहता यत्र नाड्यः स एषोऽन्तश्चरते बहुधा जायमानः । ओमित्येवं ध्यायथ आत्मानं स्वस्ति वः पाराय तमसः परस्तात् ॥",
+        "transliteration": "arā iva rathanābhau saṃhatā yatra nāḍyaḥ sa eṣo 'ntaś carate bahudhā jāyamānaḥ | om ity evaṃ dhyāyatha ātmānaṃ svasti vaḥ pārāya tamasaḥ parastāt ||",
+        "translation": "Where the channels come together like spokes in the hub of a chariot wheel, there he moves within, becoming manifold. Meditate on the Self as Om. May you cross safely beyond darkness.",
+        "citation": "Muṇḍaka Upaniṣad 2.2.6"
+      }
+    ],
+    "related": ["prasna-upanishad", "katha-upanishad"],
+    "needsVerification": false
+  },
+  {
+    "id": "brihadaranyaka-upanishad",
+    "title": "Bṛhadāraṇyaka Upaniṣad",
+    "deva": "बृहदारण्यकोपनिषद्",
+    "category": "Upanishad",
+    "tradition": "Śukla Yajurveda · principal Upaniṣad",
+    "summary": "The largest early Upaniṣad. In its discussions of sleep and dream it describes 'hitā' channels running from the heart through the body — numbered at 72,000 — and describes them as extremely fine and filled with coloured fluids, through which the self moves in deep sleep.",
+    "keyTeachings": [
+      "In deep sleep the self withdraws through the hitā channels into the space of the heart.",
+      "The hitā channels are as fine as a hair split a thousandfold."
+    ],
+    "relevance": "An early source for the 72,000 nāḍīs later standard in Haṭha texts. Exact verse references (commonly cited as 2.1.19 and 4.3.20) should be checked against your edition.",
+    "chakras": ["anahata"],
+    "pranas": ["vyana"],
+    "nadis": [],
+    "verses": [],
+    "related": ["chandogya-upanishad", "prasna-upanishad"],
+    "needsVerification": true
+  },
+  {
+    "id": "maitri-upanishad",
+    "title": "Maitrī (Maitrāyaṇīya) Upaniṣad",
+    "deva": "मैत्र्युपनिषद्",
+    "category": "Upanishad",
+    "tradition": "Kṛṣṇa Yajurveda · late classical Upaniṣad",
+    "summary": "Teaches a six-limbed yoga and, in its sixth chapter, names an upward-going channel called Suṣumnā that carries the breath and passes through the palate; joining breath, Om and mind, the practitioner goes upward by it.",
+    "keyTeachings": [
+      "A sixfold yoga: prāṇāyāma, pratyāhāra, dhyāna, dhāraṇā, tarka and samādhi.",
+      "Suṣumnā is named explicitly as an upward channel carrying prāṇa."
+    ],
+    "relevance": "One of the earliest texts to name Suṣumnā. Commonly cited at 6.21 — verify against your edition before quoting.",
+    "chakras": ["sahasrara"],
+    "pranas": ["prana", "udana"],
+    "nadis": ["sushumna"],
+    "verses": [],
+    "related": ["katha-upanishad", "hatha-yoga-pradipika"],
+    "needsVerification": true
+  },
+  {
+    "id": "yoga-kundalini-upanishad",
+    "title": "Yoga-kuṇḍalī Upaniṣad",
+    "deva": "योगकुण्डल्युपनिषद्",
+    "category": "Upanishad",
+    "tradition": "Kṛṣṇa Yajurveda · one of the minor Yoga Upaniṣads (Muktikā canon)",
+    "summary": "A three-chapter Yoga Upaniṣad on awakening Kuṇḍalinī. It teaches the regulation of food, posture and breath, the 'stirring' of Sarasvatī (Kuṇḍalinī), types of kumbhaka and bandha, and khecarī mudrā, with Kuṇḍalinī rising through Suṣumnā and piercing the knots (granthis).",
+    "keyTeachings": [
+      "Mastery of mind depends on mastery of prāṇa.",
+      "Kuṇḍalinī, roused by breath and bandhas, enters Suṣumnā and rises, piercing the granthis.",
+      "Khecarī mudrā is taught in detail in the second chapter."
+    ],
+    "relevance": "Directly concerned with Kuṇḍalinī's rise through Suṣumnā from Mūlādhāra to the crown.",
+    "chakras": ["muladhara", "sahasrara"],
+    "pranas": ["prana", "apana"],
+    "nadis": ["sushumna", "ida", "pingala"],
+    "verses": [],
+    "related": ["hatha-yoga-pradipika", "sat-chakra-nirupana", "yogachudamani-upanishad"],
+    "needsVerification": true
+  },
+  {
+    "id": "dhyanabindu-upanishad",
+    "title": "Dhyānabindu Upaniṣad",
+    "deva": "ध्यानबिन्दूपनिषद्",
+    "category": "Upanishad",
+    "tradition": "Yoga Upaniṣad (Muktikā canon; Vedic affiliation differs by recension)",
+    "summary": "A Yoga Upaniṣad on meditation (dhyāna) through Om: the parts of Om are linked with deities and locations in the body, and the practitioner is taught to draw prāṇa through the nāḍīs and fix it upward. It also gives an account of the centres and of the nāḍīs.",
+    "keyTeachings": [
+      "Om as the bow-and-arrow of meditation, carried inward and upward.",
+      "Breath, sound and attention joined in the central channel."
+    ],
+    "relevance": "Om-based meditation along the axis — the same Om glyphs that radiate from each chakra in the side view.",
+    "chakras": ["ajna", "anahata"],
+    "pranas": ["prana"],
+    "nadis": ["sushumna", "ida", "pingala"],
+    "verses": [],
+    "related": ["nadabindu-upanishad", "mundaka-upanishad"],
+    "needsVerification": true
+  },
+  {
+    "id": "shandilya-upanishad",
+    "title": "Śāṇḍilya Upaniṣad",
+    "deva": "शाण्डिल्योपनिषद्",
+    "category": "Upanishad",
+    "tradition": "Atharvaveda · Yoga Upaniṣad (Muktikā canon)",
+    "summary": "A comprehensive yoga manual in Upaniṣad form. It sets out the eight limbs, describes the 'kanda' near the navel from which the nāḍīs spread, names fourteen principal nāḍīs with Iḍā, Piṅgalā and Suṣumnā foremost, and lists the ten vāyus with their seats and functions.",
+    "keyTeachings": [
+      "Fourteen principal nāḍīs; Iḍā on the left, Piṅgalā on the right, Suṣumnā in the middle.",
+      "Ten vāyus — the five principal (prāṇa, apāna, samāna, udāna, vyāna) and five secondary (nāga, kūrma, kṛkara, devadatta, dhanañjaya).",
+      "Purification of the nāḍīs (nāḍī-śodhana) precedes prāṇāyāma."
+    ],
+    "relevance": "The most systematic Upaniṣadic account of nāḍīs and vāyus together.",
+    "chakras": ["manipura", "muladhara"],
+    "pranas": ["prana", "apana", "samana", "udana", "vyana"],
+    "nadis": ["sushumna", "ida", "pingala"],
+    "verses": [],
+    "related": ["prasna-upanishad", "yogachudamani-upanishad", "hatha-yoga-pradipika"],
+    "needsVerification": true
+  },
+  {
+    "id": "yogachudamani-upanishad",
+    "title": "Yogacūḍāmaṇi Upaniṣad",
+    "deva": "योगचूडामण्युपनिषद्",
+    "category": "Upanishad",
+    "tradition": "Sāmaveda · Yoga Upaniṣad (Muktikā canon)",
+    "summary": "The 'crest-jewel of yoga'. It describes the six centres, the nāḍīs (Iḍā, Piṅgalā, Suṣumnā and others), the ten vāyus, the bandhas, and the awakening of Kuṇḍalinī, framing yoga as a means to liberation.",
+    "keyTeachings": [
+      "Six centres from Ādhāra to Ājñā.",
+      "Iḍā and Piṅgalā flank Suṣumnā; prāṇa in Suṣumnā leads to stillness of mind.",
+      "The ten vāyus and their locations."
+    ],
+    "relevance": "Combines chakras, nāḍīs and vāyus in one short text.",
+    "chakras": ["muladhara", "svadhisthana", "manipura", "anahata", "vishuddha", "ajna"],
+    "pranas": ["prana", "apana", "samana", "udana", "vyana"],
+    "nadis": ["sushumna", "ida", "pingala"],
+    "verses": [],
+    "related": ["shandilya-upanishad", "yoga-kundalini-upanishad"],
+    "needsVerification": true
+  },
+  {
+    "id": "nadabindu-upanishad",
+    "title": "Nādabindu Upaniṣad",
+    "deva": "नादबिन्दूपनिषद्",
+    "category": "Upanishad",
+    "tradition": "Ṛgveda · Yoga Upaniṣad (Muktikā canon)",
+    "summary": "Om pictured as a bird (haṃsa) whose parts are its syllables, and a teaching on the inner sound (nāda): the practitioner listens to subtle sounds that grow finer until the mind dissolves in them.",
+    "keyTeachings": [
+      "Om as a bird — the syllables as its wings, tail and head.",
+      "Listening to the inner nāda, from gross to subtle, absorbs the mind."
+    ],
+    "relevance": "Background for sound-based practice — the Chant and Matrikā modes in this app.",
+    "chakras": ["anahata", "ajna"],
+    "pranas": [],
+    "nadis": ["sushumna"],
+    "verses": [],
+    "related": ["dhyanabindu-upanishad", "hatha-yoga-pradipika"],
+    "needsVerification": true
+  },
+  {
+    "id": "hatha-yoga-pradipika",
+    "title": "Haṭha Yoga Pradīpikā",
+    "deva": "हठयोगप्रदीपिका",
+    "category": "Yoga text",
+    "tradition": "Svātmārāma · c. 15th century CE",
+    "summary": "The best-known classical manual of Haṭha Yoga, in four chapters: āsana; ṣaṭkarma and prāṇāyāma; mudrās and bandhas (with Kuṇḍalinī); and samādhi with nāda. Its third chapter opens by making Kuṇḍalinī the support of all yoga and lists the names of Suṣumnā.",
+    "keyTeachings": [
+      "As the serpent-king supports the earth, Kuṇḍalinī supports all yoga practices.",
+      "When Kuṇḍalinī awakens, the lotuses and knots are pierced and prāṇa moves through the 'empty path' (Suṣumnā).",
+      "Prāṇāyāma purifies the nāḍīs; balanced breath leads prāṇa into the central channel."
+    ],
+    "relevance": "Central classical source for Suṣumnā, Kuṇḍalinī and the purification of Iḍā and Piṅgalā.",
+    "chakras": ["muladhara", "sahasrara"],
+    "pranas": ["prana", "apana"],
+    "nadis": ["sushumna", "ida", "pingala"],
+    "verses": [
+      {
+        "sanskrit": "सशैलवनधात्रीणां यथाधारोऽहिनायकः । सर्वेषां योगतन्त्राणां तथाधारो हि कुण्डली ॥",
+        "transliteration": "saśailavanadhātrīṇāṃ yathādhāro 'hināyakaḥ | sarveṣāṃ yogatantrāṇāṃ tathādhāro hi kuṇḍalī ||",
+        "translation": "As the lord of serpents supports the earth with its mountains and forests, so Kuṇḍalinī is the support of all the yoga practices.",
+        "citation": "Haṭha Yoga Pradīpikā 3.1"
+      },
+      {
+        "transliteration": "suṣumnā śūnyapadavī brahmarandhraṃ mahāpathaḥ | śmaśānaṃ śāmbhavī madhyamārgaś cety ekavācakāḥ ||",
+        "translation": "Suṣumnā, the empty path, the opening of Brahman, the great road, the cremation ground, the Śāmbhavī, the middle way — these are words for one thing.",
+        "citation": "Haṭha Yoga Pradīpikā 3.4",
+        "verify": true
+      }
+    ],
+    "related": ["gheranda-samhita", "shiva-samhita", "yoga-kundalini-upanishad"],
+    "needsVerification": false
+  },
+  {
+    "id": "gheranda-samhita",
+    "title": "Gheraṇḍa Saṃhitā",
+    "deva": "घेरण्डसंहिता",
+    "category": "Yoga text",
+    "tradition": "c. 17th century CE · dialogue of Gheraṇḍa and Caṇḍa Kāpāli",
+    "summary": "A Haṭha manual teaching a sevenfold discipline (saptasādhana): cleansing, posture, mudrā, sense-withdrawal, breath-control, meditation and samādhi. It gives detailed purifications, many āsanas and mudrās, and kumbhaka practices.",
+    "keyTeachings": [
+      "Seven limbs: śodhana, dṛḍhatā, sthiratā, dhairya, lāghava, pratyakṣa, nirliptatā (purity → freedom).",
+      "Purification of the nāḍīs precedes breath retention."
+    ],
+    "relevance": "Practical methods for nāḍī purification and prāṇāyāma.",
+    "chakras": [],
+    "pranas": ["prana", "apana"],
+    "nadis": ["ida", "pingala", "sushumna"],
+    "verses": [],
+    "related": ["hatha-yoga-pradipika", "shiva-samhita"],
+    "needsVerification": true
+  },
+  {
+    "id": "shiva-samhita",
+    "title": "Śiva Saṃhitā",
+    "deva": "शिवसंहिता",
+    "category": "Yoga text",
+    "tradition": "Haṭha / Tantric yoga text · dating debated (c. 15th–17th century CE)",
+    "summary": "Presented as Śiva's teaching to Pārvatī. Its second chapter describes the body as a microcosm, with a very large number of nāḍīs of which fourteen are principal and three — Iḍā, Piṅgalā and Suṣumnā — are chief. Later chapters describe the centres, prāṇāyāma, mudrās and the four stages of yoga.",
+    "keyTeachings": [
+      "The body as a microcosm containing mountains, rivers and stars.",
+      "Of all nāḍīs, Iḍā, Piṅgalā and Suṣumnā are chief; Suṣumnā is foremost.",
+      "Four stages of practice: ārambha, ghaṭa, paricaya, niṣpatti."
+    ],
+    "relevance": "Detailed microcosmic anatomy of the three main channels.",
+    "chakras": ["muladhara", "svadhisthana", "manipura", "anahata", "vishuddha", "ajna", "sahasrara"],
+    "pranas": ["prana", "apana"],
+    "nadis": ["sushumna", "ida", "pingala"],
+    "verses": [],
+    "related": ["hatha-yoga-pradipika", "gheranda-samhita", "sat-chakra-nirupana"],
+    "needsVerification": true
+  },
+  {
+    "id": "sat-chakra-nirupana",
+    "title": "Ṣaṭ-cakra-nirūpaṇa",
+    "deva": "षट्चक्रनिरूपण",
+    "category": "Tantra",
+    "tradition": "Pūrṇānanda Svāmī · 16th century (traditionally 1577) · chapter of the Śrītattvacintāmaṇi; English: Arthur Avalon, 'The Serpent Power' (1919)",
+    "summary": "The classical Tantric description of the six centres plus Sahasrāra. For each lotus it gives the number and colour of petals, the letters on them, the element and its yantra, the bīja, the presiding deity and Śakti. It opens by placing Śaśi (Iḍā) and Mihira (Piṅgalā) on either side of Meru (the spine) with Suṣumnā in the middle, containing Vajrā, Citriṇī and the Brahma-nāḍī.",
+    "keyTeachings": [
+      "Iḍā (moon) left, Piṅgalā (sun) right, Suṣumnā centre — within it Vajrā, Citriṇī and Brahma-nāḍī.",
+      "Petal letters: 4, 6, 10, 12, 16 and 2 — the fifty Mātṛkā letters distributed from Mūlādhāra to Ājñā.",
+      "Kuṇḍalinī rises from Mūlādhāra, dissolving each element into the next, to unite with Śiva in Sahasrāra."
+    ],
+    "relevance": "The direct source tradition for the petal letters, bījas, yantras, deities and Śaktis used in the Chakra Detail views.",
+    "chakras": ["muladhara", "svadhisthana", "manipura", "anahata", "vishuddha", "ajna", "sahasrara"],
+    "pranas": [],
+    "nadis": ["sushumna", "ida", "pingala"],
+    "verses": [],
+    "related": ["hatha-yoga-pradipika", "shiva-samhita", "yoga-kundalini-upanishad"],
+    "needsVerification": false
+  },
+  {
+    "id": "yoga-sutra",
+    "title": "Yoga Sūtra of Patañjali",
+    "deva": "योगसूत्र",
+    "category": "Yoga text",
+    "tradition": "Patañjali · dating debated (c. 2nd century BCE – 5th century CE)",
+    "summary": "The foundational text of classical (Rāja) yoga in four pādas. It defines yoga as the stilling of the movements of the mind and sets out the eight limbs. The third pāda opens with dhāraṇā — the binding of attention to a place — and lists the powers arising from saṃyama, including knowledge of the body's arrangement from the navel centre.",
+    "keyTeachings": [
+      "Yoga is the cessation of the fluctuations of the mind (1.2).",
+      "Dhāraṇā: binding the mind to one place (3.1) — the basis of this app's Dharana mode.",
+      "Saṃyama on the navel wheel gives knowledge of the body's arrangement."
+    ],
+    "relevance": "Defines Dhāraṇā; one sūtra names the navel 'cakra'.",
+    "chakras": ["manipura"],
+    "pranas": [],
+    "nadis": [],
+    "verses": [
+      {
+        "sanskrit": "देशबन्धश्चित्तस्य धारणा ॥",
+        "transliteration": "deśabandhaś cittasya dhāraṇā ||",
+        "translation": "Dhāraṇā is the binding of the mind to a place.",
+        "citation": "Yoga Sūtra 3.1"
+      },
+      {
+        "sanskrit": "नाभिचक्रे कायव्यूहज्ञानम् ॥",
+        "transliteration": "nābhicakre kāyavyūhajñānam ||",
+        "translation": "(By saṃyama) on the navel wheel, knowledge of the arrangement of the body.",
+        "citation": "Yoga Sūtra 3.29 (3.28 in some editions)",
+        "verify": true
+      }
+    ],
+    "related": ["hatha-yoga-pradipika", "bhagavad-gita"],
+    "needsVerification": false
+  },
+  {
+    "id": "bhagavad-gita",
+    "title": "Bhagavad Gītā",
+    "deva": "भगवद्गीता",
+    "category": "Other",
+    "tradition": "Mahābhārata, Bhīṣma Parva · Itihāsa",
+    "summary": "Kṛṣṇa's teaching to Arjuna. Several verses describe breath practice: offering prāṇa into apāna and apāna into prāṇa, balancing the breaths moving within the nostrils, and fixing prāṇa between the eyebrows at the time of departure.",
+    "keyTeachings": [
+      "Prāṇāyāma as an inner offering: prāṇa into apāna, apāna into prāṇa.",
+      "Balancing prāṇa and apāna within the nostrils, gaze between the brows.",
+      "Fixing prāṇa between the eyebrows (Ājñā)."
+    ],
+    "relevance": "Links the prāṇa/apāna balance with Ājñā, the meeting point of Iḍā and Piṅgalā.",
+    "chakras": ["ajna"],
+    "pranas": ["prana", "apana"],
+    "nadis": ["ida", "pingala", "sushumna"],
+    "verses": [
+      {
+        "sanskrit": "अपाने जुह्वति प्राणं प्राणेऽपानं तथापरे । प्राणापानगती रुद्ध्वा प्राणायामपरायणाः ॥",
+        "transliteration": "apāne juhvati prāṇaṃ prāṇe 'pānaṃ tathāpare | prāṇāpānagatī ruddhvā prāṇāyāmaparāyaṇāḥ ||",
+        "translation": "Others offer prāṇa into apāna, and apāna into prāṇa; restraining the courses of prāṇa and apāna, they are devoted to prāṇāyāma.",
+        "citation": "Bhagavad Gītā 4.29"
+      },
+      {
+        "sanskrit": "स्पर्शान्कृत्वा बहिर्बाह्यांश्चक्षुश्चैवान्तरे भ्रुवोः । प्राणापानौ समौ कृत्वा नासाभ्यन्तरचारिणौ ॥",
+        "transliteration": "sparśān kṛtvā bahir bāhyāṃś cakṣuś caivāntare bhruvoḥ | prāṇāpānau samau kṛtvā nāsābhyantaracāriṇau ||",
+        "translation": "Shutting out external contacts, fixing the gaze between the eyebrows, making equal prāṇa and apāna as they move within the nostrils…",
+        "citation": "Bhagavad Gītā 5.27"
+      },
+      {
+        "sanskrit": "प्रयाणकाले मनसाचलेन भक्त्या युक्तो योगबलेन चैव । भ्रुवोर्मध्ये प्राणमावेश्य सम्यक् स तं परं पुरुषमुपैति दिव्यम् ॥",
+        "transliteration": "prayāṇakāle manasācalena bhaktyā yukto yogabalena caiva | bhruvor madhye prāṇam āveśya samyak sa taṃ paraṃ puruṣam upaiti divyam ||",
+        "translation": "At the time of departure, with unmoving mind, joined with devotion and the strength of yoga, having fixed prāṇa fully between the eyebrows, one reaches that supreme, divine Person.",
+        "citation": "Bhagavad Gītā 8.10"
+      }
+    ],
+    "related": ["yoga-sutra", "prasna-upanishad"],
+    "needsVerification": false
+  },
+  {
+    "id": "devi-bhagavata-purana",
+    "title": "Devī Bhāgavata Purāṇa (Devī Gītā)",
+    "deva": "देवीभागवतपुराण",
+    "category": "Purana",
+    "tradition": "Śākta Purāṇa · the Devī Gītā forms part of its seventh book",
+    "summary": "The Devī Gītā section presents the Goddess teaching yoga to Himālaya, including an account of Kuṇḍalinī and the six centres, the nāḍīs, and the practice of drawing prāṇa up the central channel. Chapter and verse references vary between editions and should be checked before quoting.",
+    "keyTeachings": [
+      "The Goddess as Kuṇḍalinī, rising through the six centres.",
+      "Yoga practice in a devotional (bhakti) frame."
+    ],
+    "relevance": "A Purāṇic presentation of the chakra system in a Śākta setting.",
+    "chakras": ["muladhara", "svadhisthana", "manipura", "anahata", "vishuddha", "ajna", "sahasrara"],
+    "pranas": [],
+    "nadis": ["sushumna"],
+    "verses": [],
+    "related": ["sat-chakra-nirupana"],
+    "needsVerification": true
+  }
+]

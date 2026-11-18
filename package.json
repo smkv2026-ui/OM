@@ -1,0 +1,40 @@
+{
+  "name": "om",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc -b"
+  },
+  "dependencies": {
+    "@fontsource/cormorant-garamond": "5.2.6",
+    "@fontsource/inter": "5.2.6",
+    "@fontsource/noto-serif-devanagari": "5.2.6",
+    "@react-three/drei": "10.1.2",
+    "@react-three/fiber": "9.1.2",
+    "framer-motion": "12.23.12",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "three": "0.177.0",
+    "zustand": "5.0.5"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "4.1.8",
+    "@types/react": "19.1.6",
+    "@types/react-dom": "19.1.6",
+    "@types/three": "0.177.0",
+    "@vitejs/plugin-react": "4.5.0",
+    "tailwindcss": "4.1.8",
+    "typescript": "5.8.3",
+    "vite": "6.3.5",
+    "vite-plugin-pwa": "1.0.0",
+    "workbox-window": "7.3.0"
+  },
+  "overrides": {
+    "motion-dom": "12.23.12",
+    "motion-utils": "12.23.6"
+  }
+}

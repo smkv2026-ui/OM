@@ -1,0 +1,11 @@
+node_modules
+dist
+dev-dist
+*.local
+.DS_Store
+# Book scans are tracing references only - never shipped or committed
+reference/chakras/
+reference/pranas/
+reference/body-views/
+test-results
+screenshots/tmp

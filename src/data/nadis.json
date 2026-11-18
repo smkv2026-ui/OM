@@ -1,0 +1,47 @@
+[
+  {
+    "id": "sushumna",
+    "name": "Sushumna",
+    "deva": "सुषुम्ना",
+    "iast": "Suṣumnā",
+    "aka": "The central channel · Madhya-mārga, Brahma-nāḍī",
+    "quality": "Neutral, luminous, the path of ascent",
+    "color": "#f5c451",
+    "colorLight": "#c08a12",
+    "side": "Centre — along the spinal column",
+    "course": "From Muladhara at the base of the spine straight up through every chakra to the crown (Brahmarandhra).",
+    "description": "The hero channel. Hatha and Tantric texts describe it running inside the spinal column; Kundalini is said to rise through it. Later texts describe finer channels within it — Vajrā, within that Citriṇī, and innermost the Brahma-nāḍī.",
+    "practice": "Feel a fine line of light along the spine. With the breath balanced between both nostrils, rest attention on that central line.",
+    "scriptures": ["hatha-yoga-pradipika", "sat-chakra-nirupana", "katha-upanishad", "maitri-upanishad", "shiva-samhita"]
+  },
+  {
+    "id": "ida",
+    "name": "Ida",
+    "deva": "इडा",
+    "iast": "Iḍā",
+    "aka": "Lunar channel · Candra-nāḍī, Śaśi",
+    "quality": "Cooling, receptive, lunar",
+    "color": "#7fb8ff",
+    "colorLight": "#2f6fc2",
+    "side": "Left",
+    "course": "Begins at Muladhara, spirals around Sushumna crossing it at each chakra, and ends at the left nostril, meeting the others at Ajna.",
+    "description": "The left, lunar current. Associated with coolness, rest and inward attention, and traditionally with breath through the left nostril.",
+    "practice": "Breathing gently through the left nostril is traditionally said to favour Ida.",
+    "scriptures": ["hatha-yoga-pradipika", "shiva-samhita", "sat-chakra-nirupana", "yogachudamani-upanishad"]
+  },
+  {
+    "id": "pingala",
+    "name": "Pingala",
+    "deva": "पिङ्गला",
+    "iast": "Piṅgalā",
+    "aka": "Solar channel · Sūrya-nāḍī, Mihira",
+    "quality": "Heating, active, solar",
+    "color": "#ff9a4a",
+    "colorLight": "#c45a0f",
+    "side": "Right",
+    "course": "Begins at Muladhara, spirals around Sushumna opposite to Ida, crossing at each chakra, and ends at the right nostril, meeting the others at Ajna.",
+    "description": "The right, solar current. Associated with warmth, activity and outward attention, and traditionally with breath through the right nostril.",
+    "practice": "Breathing gently through the right nostril is traditionally said to favour Pingala.",
+    "scriptures": ["hatha-yoga-pradipika", "shiva-samhita", "sat-chakra-nirupana", "yogachudamani-upanishad"]
+  }
+]
