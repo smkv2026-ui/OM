@@ -84,6 +84,6 @@ static host (GitHub Pages, Netlify, Vercel, Firebase). No backend.
 | iOS autoplay / AudioContext | Create/resume context inside the first user gesture; HTMLAudio for clips. |
 | MediaRecorder MIME differs (Safari = mp4) | Use `recorder.mimeType`; fallback message instead of `alert`. |
 | Scripture accuracy | Only quote verses I can attribute confidently; everything else is summary + `needsVerification`. Never invent verse numbers. |
-| No back view reference | Derive from front contour + side spine levels; flagged in report. |
+| Back view reference | Fig. 4.4 (`reference/body-views/back.png`) is the back view: redrawn from it (de-skewed, symmetric), lotus heights fitted to the frame within ±7 units of the calibrated ratios; 3D chakra heights follow it. |
 | True 3D from flat scans impossible | Stylised primitive figure matched to front/side proportions; flagged. |
 | Scans are copyrighted | Used only as tracing references; not shipped (kept outside `src`/`public`). |

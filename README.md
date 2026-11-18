@@ -135,13 +135,19 @@ Rules: never invent a verse or a verse number. If unsure, leave `verses` empty, 
 
 ### Body views and reference images
 
-The app ships **no raster figures** — every figure is vector. To refine a view from a new reference image:
+The app ships **no raster figures** — every figure is vector:
+
+- **Front** — traced from the prototype's own silhouette (the frame the 7-sensor calibration was made in).
+- **Back** — redrawn from Fig. 4.4 (`reference/body-views/back.png`): back of the head with ears, lotuses on the spine, arms bent with hands in the lap. The scan was de-skewed and mapped with `y = 0.303·px − 232.5`, which puts every lotus within ±7 units of the calibrated heights; positions are `position.backY/backW/backH` in `chakras.json`. The 3D model uses the same heights, so its Front and Back presets line up with both figures.
+- **Side** — redrawn from Fig. 5.1 (`position.sideX/sideY`).
+
+To refine a view from a new reference image:
 
 1. Put the image in `reference/body-views/` (e.g. `back.png`). Scans in `reference/` are git-ignored.
 2. For a figure on a transparent background, trace it into the shared frame:
    `python3 scripts/trace-silhouette.py reference/body-views/back.png 110 0.5 > back.json` and paste the paths into `src/figures/geometry.ts` (e.g. a new `BACK_OUTLINE`).
 3. For line-art scans, draw paths by hand in `geometry.ts` and check them with `node scripts/overlay-check.cjs src/figures/traced.ts details.svg <image.png> out.png`, which renders your paths over the image.
-4. If spinal levels change, update `position.sideX/sideY` in `chakras.json` — Side, Back and 3D follow.
+4. If chakra positions change, update `position` in `chakras.json`: `backY` drives the Back view and 3D heights, `sideX/sideY` the Side view and 3D spinal depth.
 
 ### Icons
 

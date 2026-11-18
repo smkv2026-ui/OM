@@ -25,13 +25,24 @@ const S = 0.01;
 const v3 = (x: number, y: number, z = 0) => new THREE.Vector3(x * S, -y * S, z * S);
 /** Spine curve (medulla → coccyx) in 3D. */
 const SPINE = new THREE.CatmullRomCurve3(SIDE_SPINE_POINTS.map(([sx, y]) => v3(0, y, -sx)));
-const chakraPos = (c: Chakra) => v3(0, c.position.sideY, -c.position.sideX);
+/** Spine depth (side-view x) at figure-y, linearly interpolated along Fig. 5.1's spinal curve. */
 const spineZAt = (y: number) => {
-  // nearest z on spine for figure-y
-  let best = SIDE_SPINE_POINTS[0];
-  for (const p of SIDE_SPINE_POINTS) if (Math.abs(p[1] - y) < Math.abs(best[1] - y)) best = p;
-  return -best[0];
+  const P = SIDE_SPINE_POINTS;
+  if (y <= P[0][1]) return -P[0][0];
+  for (let i = 0; i < P.length - 1; i++) {
+    const [x0, y0] = P[i];
+    const [x1, y1] = P[i + 1];
+    if (y >= y0 && y <= y1) return -(x0 + ((x1 - x0) * (y - y0)) / (y1 - y0));
+  }
+  return -P[P.length - 1][0];
 };
+/**
+ * Chakra position: height from Fig. 4.4 (backY — front and back presets project along the same
+ * axis, and it matches the front calibration within ±7 units); depth on the spinal curve of Fig. 5.1.
+ * Ajna and Sahasrara sit in the head, off the spine, at their side-view depth.
+ */
+const chakraPos = (c: Chakra) =>
+  v3(0, c.position.backY, c.id === 'ajna' || c.id === 'sahasrara' ? -c.position.sideX : spineZAt(c.position.backY));
 
 /* ------------------------------------------------------------------ materials */
 
@@ -255,7 +266,7 @@ function Sushumna({ dark }: { dark: boolean }) {
 /** Ida / Pingala: spiral around the spine, crossing at each chakra, meeting at Ajna. */
 function Braid({ side, color }: { side: -1 | 1; color: string }) {
   const geo = useMemo(() => {
-    const ys = CHAKRAS.filter((c) => c.id !== 'sahasrara').map((c) => c.position.sideY);
+    const ys = CHAKRAS.filter((c) => c.id !== 'sahasrara').map((c) => c.position.backY);
     const pts: THREE.Vector3[] = [];
     for (let s = 0; s < ys.length - 1; s++) {
       const y0 = ys[s];

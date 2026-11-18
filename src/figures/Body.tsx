@@ -3,6 +3,8 @@ import { CHAKRAS, type Chakra, type ChakraId } from '../data';
 import { Yantra } from '../yantras/Yantra';
 import {
   BACK_DETAILS,
+  BACK_GAPS,
+  BACK_OUTLINE,
   chakraPoint,
   FRONT_ARM_GAPS,
   FRONT_DETAILS,
@@ -37,6 +39,8 @@ export function Body({ view, look = 'premium' }: { view: FigureView; look?: Body
   const rim = premium ? 'var(--body-rim)' : 'var(--text)';
   const rimW = premium ? 1.1 : 1.5;
   const detail = premium ? 'var(--body-detail)' : 'var(--text)';
+  const outline = view === 'back' ? BACK_OUTLINE : FRONT_OUTLINE;
+  const holes = view === 'back' ? BACK_GAPS : FRONT_ARM_GAPS;
   return (
     <g>
       <defs>
@@ -62,17 +66,10 @@ export function Body({ view, look = 'premium' }: { view: FigureView; look?: Body
       ) : (
         <>
           {premium && (
-            <path d={FRONT_OUTLINE} fill="none" stroke="var(--body-rim)" strokeWidth={5} opacity={0.35} filter={`url(#${id('rim')})`} />
+            <path d={outline} fill="none" stroke="var(--body-rim)" strokeWidth={5} opacity={0.35} filter={`url(#${id('rim')})`} />
           )}
-          <path
-            d={`${FRONT_OUTLINE} ${FRONT_ARM_GAPS.join(' ')}`}
-            fillRule="evenodd"
-            fill={fill}
-            stroke={rim}
-            strokeWidth={rimW}
-            strokeLinejoin="round"
-          />
-          {premium && <path d={`${FRONT_OUTLINE} ${FRONT_ARM_GAPS.join(' ')}`} fillRule="evenodd" fill={`url(#${id('shade')})`} />}
+          <path d={`${outline} ${holes.join(' ')}`} fillRule="evenodd" fill={fill} stroke={rim} strokeWidth={rimW} strokeLinejoin="round" />
+          {premium && <path d={`${outline} ${holes.join(' ')}`} fillRule="evenodd" fill={`url(#${id('shade')})`} />}
         </>
       )}
 
@@ -81,7 +78,6 @@ export function Body({ view, look = 'premium' }: { view: FigureView; look?: Body
           <path key={d} d={d} />
         ))}
         {view === 'front' && FRONT_LOOPS.map((l, i) => <ellipse key={i} cx={l.cx} cy={l.cy} rx={l.rx} ry={l.ry} />)}
-        {view === 'back' && FRONT_LOOPS.slice(2).map((l, i) => <ellipse key={i} cx={l.cx} cy={l.cy} rx={l.rx} ry={l.ry} />)}
       </g>
 
       {view === 'side' && <SideInterior premium={premium} />}
@@ -133,13 +129,14 @@ function Vertebrae() {
   );
 }
 
-/** Back-view spinal column: vertebral levels taken from the side figure, straightened onto x = 0. */
+/** Back-view spinal column (Fig. 4.4): neck base to coccyx on x = 0, 26 vertebral bodies. */
+const BACK_SPINE = { top: -86, bottom: 152 };
 function BackSpine() {
   return (
     <g>
-      <line x1={0} y1={-108} x2={0} y2={158} stroke="var(--body-detail)" strokeWidth={8} strokeLinecap="round" opacity={0.18} />
+      <line x1={0} y1={BACK_SPINE.top} x2={0} y2={BACK_SPINE.bottom + 6} stroke="var(--body-detail)" strokeWidth={8} strokeLinecap="round" opacity={0.18} />
       {VERTEBRAE.map((v, i) => (
-        <g key={i} transform={`translate(0 ${v.y})`}>
+        <g key={i} transform={`translate(0 ${BACK_SPINE.top + ((BACK_SPINE.bottom - BACK_SPINE.top) * i) / (VERTEBRAE.length - 1)})`}>
           <rect x={-v.w / 2} y={-2} width={v.w} height={4} rx={1.8} fill="color-mix(in oklab, var(--body-detail) 50%, transparent)" />
           {v.region !== 'sacral' && <circle r={1.2} fill="var(--body-detail)" />}
         </g>
@@ -216,12 +213,14 @@ export function ChakraGlyphs({
     <g>
       {list.map((c, i) => {
         const p = chakraPoint(c, view);
-        const s = c.position.size * scale * (view === 'back' ? 0.85 : 1);
+        const s = c.position.size * scale;
         return (
           <ChakraHit key={c.id} chakra={c} x={p.x} y={p.y} r={Math.max(s / 2, 21)} onSelect={onSelect} selected={selected === c.id}>
             <g className={breathing ? 'anim-breathe' : ''} style={{ animationDelay: `${-i * 0.7}s` }}>
               {view === 'side' ? (
                 <SideNode chakra={c} x={p.x} y={p.y} />
+              ) : view === 'back' ? (
+                <BackLotus chakra={c} x={p.x} y={p.y} />
               ) : (
                 <Yantra chakra={c} variant="mini" x={p.x - s / 2} y={p.y - s / 2} size={s} />
               )}
@@ -329,6 +328,98 @@ export function SideNode({ chakra, x, y, spokeScale = 1 }: { chakra: Chakra; x: 
       <text x={x} y={y + 0.4} fontSize={R * 1.25} textAnchor="middle" dominantBaseline="central" className="font-deva" fill={ink} fontWeight={700}>
         ॐ
       </text>
+    </g>
+  );
+}
+
+/**
+ * Back-view lotus (Fig. 4.4): a lotus bud seen in profile on the spine — a crown of pointed back
+ * petals, nested front petals and a central petal. Sahasrara is the drooping thousand-petal canopy,
+ * Ajna the two horizontal petals, Muladhara carries the downward arrow.
+ */
+export function BackLotus({ chakra: c, x, y }: { chakra: Chakra; x: number; y: number }) {
+  const w = c.position.backW;
+  const h = c.position.backH;
+  const col = c.color.rainbow ? '#c9a7ff' : c.color.primary;
+  const vars = { ['--c' as string]: col, ['--c-ink' as string]: c.color.rainbow ? '#7d4fd6' : c.color.ink };
+  const id = useIds();
+  const glow = (
+    <g>
+      <defs>
+        <radialGradient id={id('g')}>
+          <stop offset="0" stopColor={col} stopOpacity="0.45" />
+          <stop offset="1" stopColor={col} stopOpacity="0" />
+        </radialGradient>
+      </defs>
+      <circle cx={x} cy={y} r={Math.max(w, h) * 0.8} fill={`url(#${id('g')})`} className="anim-glow" />
+    </g>
+  );
+  if (c.id === 'ajna') {
+    return (
+      <g>
+        {glow}
+        <Yantra chakra={c} variant="mini" x={x - w / 2} y={y - w / 2} size={w} />
+      </g>
+    );
+  }
+  if (c.id === 'sahasrara') {
+    // petals hanging from a small crown disc, rainbow
+    const n = 23;
+    return (
+      <g className="yantra" style={vars}>
+        {glow}
+        {Array.from({ length: n }, (_, i) => {
+          const t = i / (n - 1);
+          const a = (-80 + t * 160) * (Math.PI / 180);
+          const len = h * (0.75 + 0.25 * Math.cos(a));
+          const bx = x + Math.sin(a) * 4;
+          const by = y - h / 2 + 3;
+          const tx = bx + Math.sin(a) * w * 0.55;
+          const ty = by + Math.cos(a) * len;
+          const nx = Math.cos(a) * 1.6;
+          const ny = -Math.sin(a) * 1.6;
+          return (
+            <path
+              key={i}
+              d={`M${bx} ${by}Q${(bx + tx) / 2 + nx * 2} ${(by + ty) / 2 + ny * 2} ${tx} ${ty}Q${(bx + tx) / 2 - nx * 2} ${(by + ty) / 2 - ny * 2} ${bx} ${by}Z`}
+              fill={`hsl(${t * 320} 90% var(--rainbow-l, 62%) / .55)`}
+              stroke={`hsl(${t * 320} 90% var(--rainbow-l, 62%))`}
+              strokeWidth={0.6}
+            />
+          );
+        })}
+        <path d={`M${x - 7} ${y - h / 2 + 3}A7 7 0 0 1 ${x + 7} ${y - h / 2 + 3}Z`} fill="#fff6d6" stroke="#ffd36e" strokeWidth={0.8} />
+      </g>
+    );
+  }
+  const base = y + h / 2;
+  const top = y - h / 2;
+  const tips = c.order <= 2 ? 3 : 7;
+  const zig = Array.from({ length: tips * 2 + 1 }, (_, i) => {
+    const px = x - w / 2 + (w * i) / (tips * 2);
+    return `${px.toFixed(2)} ${(i % 2 ? top : top + h * 0.28).toFixed(2)}`;
+  }).join('L');
+  const petal = (cx: number, pw: number, ph: number) =>
+    `M${x + cx * 0.25} ${base}C${x + cx - pw} ${base - ph * 0.35} ${x + cx - pw * 0.6} ${base - ph * 0.8} ${x + cx} ${base - ph}` +
+    `C${x + cx + pw * 0.6} ${base - ph * 0.8} ${x + cx + pw} ${base - ph * 0.35} ${x + cx * 0.25} ${base}Z`;
+  const side = c.order <= 2 ? [w * 0.3] : [w * 0.36, w * 0.18];
+  return (
+    <g className="yantra" style={vars} strokeLinejoin="round">
+      {glow}
+      {c.order > 2 && <path d={`M${x - w / 2} ${top + h * 0.28}L${zig}L${x + w / 2} ${top + h * 0.28}L${x + w * 0.42} ${base - h * 0.3}L${x - w * 0.42} ${base - h * 0.3}Z`} fill="var(--petal-fill)" stroke="var(--stroke)" strokeWidth={0.9} />}
+      {side.map((dx, i) => (
+        <g key={i}>
+          <path d={petal(-dx, w * 0.2, h * (0.82 - i * 0.08))} fill="var(--petal-fill)" stroke="var(--stroke)" strokeWidth={1} />
+          <path d={petal(dx, w * 0.2, h * (0.82 - i * 0.08))} fill="var(--petal-fill)" stroke="var(--stroke)" strokeWidth={1} />
+        </g>
+      ))}
+      <path d={petal(0, w * 0.2, h * 0.92)} fill={c.id === 'muladhara' ? '#f2c230' : 'color-mix(in oklab, var(--c) 35%, var(--moon-disc))'} stroke={c.id === 'muladhara' ? '#d7263d' : 'var(--stroke)'} strokeWidth={1.1} />
+      {c.id === 'muladhara' && (
+        <g stroke="#d7263d" strokeWidth={1.4} fill="#d7263d" strokeLinecap="round">
+          <line x1={x} y1={base} x2={x} y2={base + 8} />
+          <path d={`M${x - 3.2} ${base + 6}L${x} ${base + 11}L${x + 3.2} ${base + 6}Z`} />
+        </g>
+      )}
     </g>
   );
 }

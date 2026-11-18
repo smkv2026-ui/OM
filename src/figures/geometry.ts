@@ -105,33 +105,64 @@ export const SIDE_SPINE_POINTS: [number, number][] = [
   [23, 158],
 ];
 
-/* ------------------------------------------------------------------ BACK (derived) */
+/* ------------------------------------------------------------------ BACK (Fig. 4.4) */
 
 /**
- * Back view: no reference supplied, so it is derived — the silhouette is the front contour
- * (the seated pose is bilaterally symmetric, so its back contour is the mirrored front outline),
- * the vertical spinal levels come from the side figure, and the face is omitted.
+ * Back view, redrawn from Fig. 4.4 (reference/body-views/back.png — the seated figure seen from
+ * behind: back of the head with ears, lotuses on the spine, arms bent with hands in the lap).
+ * The scan was de-skewed (its spine drifts ~26 px) and mapped into the shared frame with one
+ * linear fit, y = 0.303·px − 232.5, which lands every lotus within ±7 units of the calibrated
+ * targetYRatio heights. Left and right halves were averaged for a clean symmetric redraw.
+ * Points are the right half (x ≥ 0); the left half is mirrored.
  */
-export const BACK_DETAILS = [
-  // trapezius / neck
-  'M-12 -96 C-22 -86 -40 -80 -60 -76',
-  'M12 -96 C22 -86 40 -80 60 -76',
-  // scapulae (medial borders)
-  'M-20 -62 C-30 -56 -34 -42 -30 -24',
-  'M20 -62 C30 -56 34 -42 30 -24',
-  'M-46 -58 Q-38 -52 -26 -52',
-  'M46 -58 Q38 -52 26 -52',
-  // lower back dimples + seat
-  'M-14 112 Q-10 116 -6 113',
-  'M14 112 Q10 116 6 113',
-  'M-70 158 Q-36 172 -4 168',
-  'M70 158 Q36 172 4 168',
-  // armpits
-  'M-64.6 -32.3 Q-60 -25 -57.5 -16.8',
-  'M64.6 -32.3 Q60 -25 57.5 -16.8',
-  // back of head: occipital hint
-  'M-18 -108 Q0 -102 18 -108',
+type P2 = [number, number];
+const mirrorX = (pts: P2[]): P2[] => pts.map(([x, y]) => [-x, y]);
+
+const BACK_HALF: P2[] = [
+  [0, -181.6], [7.1, -180], [18.2, -171.6], [23, -160.1], [24, -146],
+  // ear
+  [26.5, -138], [28.5, -130], [26, -119], [21, -112],
+  // neck → shoulder → arm (outer contour)
+  [17.2, -104], [16, -93.7], [17, -84], [19.8, -71], [30.8, -64.1], [45.4, -58], [54.8, -53.5],
+  [59.1, -43.9], [61.4, -31.3], [63.8, -12.5], [69.6, 10.3], [74.2, 26.3], [76.7, 39.7], [77.5, 50], [81, 58.5],
+  // knee → crossed legs → seat
+  [88.9, 63], [99, 74.5], [101.7, 87.8], [100.3, 102.4], [96, 113.5], [81, 129], [67.5, 140.7],
+  [52.4, 155.9], [42, 166.5], [30.3, 172.8], [18.7, 174.7], [6, 174], [0, 173.4],
 ];
+
+/** Closed Catmull-Rom path. */
+function closedPath(pts: P2[], t = 1 / 6): string {
+  const n = pts.length;
+  let d = `M${pts[0][0]} ${pts[0][1]}`;
+  for (let i = 0; i < n; i++) {
+    const p0 = pts[(i - 1 + n) % n];
+    const p1 = pts[i];
+    const p2 = pts[(i + 1) % n];
+    const p3 = pts[(i + 2) % n];
+    d += `C${(p1[0] + (p2[0] - p0[0]) * t).toFixed(1)} ${(p1[1] + (p2[1] - p0[1]) * t).toFixed(1)} ${(p2[0] - (p3[0] - p1[0]) * t).toFixed(1)} ${(p2[1] - (p3[1] - p1[1]) * t).toFixed(1)} ${p2[0].toFixed(1)} ${p2[1].toFixed(1)}`;
+  }
+  return d + 'Z';
+}
+
+export const BACK_OUTLINE = closedPath([...BACK_HALF, ...mirrorX(BACK_HALF.slice(1, -1)).reverse()]);
+
+/** The two arm–torso gaps (diamond shapes in Fig. 4.4) — holes, drawn with evenodd. */
+const gap = (s: 1 | -1) =>
+  `M${40.3 * s} -1.6C${46 * s} 12 ${53 * s} 30 ${58.1 * s} 45.3L${35 * s} 94C${30 * s} 86 ${29 * s} 72 ${29.9 * s} 63.3` +
+  `C${30.5 * s} 50 ${32 * s} 40 ${33.2 * s} 34C${35 * s} 22 ${38 * s} 8 ${40.3 * s} -1.6Z`;
+export const BACK_GAPS = [gap(1), gap(-1)];
+
+const backDetailHalf: P2[][] = [
+  // forearm resting over the thigh, into the lap
+  [[77.5, 50], [72, 62], [63.7, 71.5], [50.9, 82.6], [37, 102]],
+  // thigh line, knee → lap
+  [[88.9, 63], [37, 102]],
+  // hip / torso side continuing below the lap
+  [[37, 102], [38.5, 119.4]],
+  // ear inner fold
+  [[24.5, -133], [26, -126], [23.5, -118]],
+];
+export const BACK_DETAILS = [...backDetailHalf, ...backDetailHalf.map(mirrorX)].map((pts) => smoothPath(pts));
 
 /* ------------------------------------------------------------------ CHAKRA POSITIONS */
 
@@ -140,7 +171,7 @@ export type FigureView = 'front' | 'side' | 'back';
 export function chakraPoint(c: Chakra, view: FigureView): { x: number; y: number } {
   if (view === 'front') return { x: 0, y: c.position.frontY };
   if (view === 'side') return { x: c.position.sideX, y: c.position.sideY };
-  return { x: 0, y: c.position.sideY };
+  return { x: 0, y: c.position.backY };
 }
 
 /* ------------------------------------------------------------------ NADI PATHS */

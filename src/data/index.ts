@@ -47,7 +47,8 @@ export interface Chakra {
   nadis: string;
   pranas: PranaId[];
   scriptures: string[];
-  position: { frontY: number; sideX: number; sideY: number; size: number };
+  /** frontY: front figure · backY/backW/backH: Fig. 4.4 back view · sideX/sideY: Fig. 5.1 spine */
+  position: { frontY: number; backY: number; backW: number; backH: number; sideX: number; sideY: number; size: number };
   targetYRatio: number;
   omSpokes: number;
   omSpokesNote?: string;
