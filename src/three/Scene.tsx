@@ -311,7 +311,7 @@ function Braid({ side, color }: { side: -1 | 1; color: string }) {
 /* ------------------------------------------------------------------ chakras */
 
 
-function ChakraNode({ c, dark, onSelect, om, bloom }: { c: Chakra; dark: boolean; onSelect: (id: ChakraId) => void; om: boolean; bloom: boolean }) {
+function ChakraNode({ c, dark, onSelect, om, bloom, simple }: { c: Chakra; dark: boolean; onSelect: (id: ChakraId) => void; om: boolean; bloom: boolean; simple: boolean }) {
   const group = useRef<THREE.Group>(null);
   const petals = useRef<THREE.InstancedMesh>(null);
   const glowMat = useRef<THREE.SpriteMaterial>(null);
@@ -319,6 +319,7 @@ function ChakraNode({ c, dark, onSelect, om, bloom }: { c: Chakra; dark: boolean
   const coreMat = useRef<THREE.MeshBasicMaterial>(null);
   const level = useRef(1);
   const spin = useRef(0);
+  const symbolRef = useRef<THREE.Group>(null);
   const bloomMesh = useRef<THREE.InstancedMesh>(null);
   const bloomObj = useMemo(() => new THREE.Object3D(), []);
   const pos = useMemo(() => chakraPos(c), [c]);
@@ -364,6 +365,15 @@ function ChakraNode({ c, dark, onSelect, om, bloom }: { c: Chakra; dark: boolean
     if (petalMat.current) petalMat.current.opacity = (bloom ? 0.45 : 0.2) + (bloom ? 0.45 : 0.65) * Math.min(1, L);
     if (coreMat.current) coreMat.current.opacity = 0.3 + 0.7 * Math.min(1, L);
     // Bloom preview: petals hinge outward from a closed bud (off) to an upward-opening lotus (on)
+    // Simple style: the symbol turns like the petal ring (eye and crown fan stay upright)
+    const sym = symbolRef.current;
+    if (sym) {
+      if (D.enabled && dir && c.id !== 'ajna' && c.id !== 'sahasrara') sym.rotation.z -= dir * dt * 1.4;
+      sym.traverse((o) => {
+        const m = (o as THREE.Mesh).material as THREE.MeshBasicMaterial | undefined;
+        if (m && 'opacity' in m) m.opacity = 0.3 + 0.7 * Math.min(1, L);
+      });
+    }
     const bm = bloomMesh.current;
     if (bm) {
       if (D.enabled && dir) spin.current -= dir * dt * (rainbow ? 0.9 : 1.2);
@@ -404,14 +414,15 @@ function ChakraNode({ c, dark, onSelect, om, bloom }: { c: Chakra; dark: boolean
         <sprite scale={[R * 4.2, R * 4.2, 1]}>
           <spriteMaterial ref={glowMat} map={glowTexture()} color={col} transparent opacity={dark ? 0.85 : 0.6} depthWrite={false} blending={dark ? THREE.AdditiveBlending : THREE.NormalBlending} toneMapped={false} />
         </sprite>
-        <mesh>
+        {simple && <SimpleSymbol c={c} groupRef={symbolRef} />}
+        <mesh visible={!simple}>
           <sphereGeometry args={[R * 0.32, 20, 14]} />
           <meshBasicMaterial ref={coreMat} transparent color={c.id === 'muladhara' ? '#f2c230' : rainbow ? '#ffffff' : col} toneMapped={false} />
         </mesh>
-        {bloom && c.id !== 'ajna' && (
+        {!simple && bloom && c.id !== 'ajna' && (
           <BloomPetals meshRef={bloomMesh} count={rainbow ? 40 : Math.max(8, Math.min(2 * c.petals.count, 24))} rainbow={rainbow} col={col} matRef={petalMat} />
         )}
-        <instancedMesh ref={petals} visible={!bloom || c.id === 'ajna'} args={[undefined, undefined, n]} rotation={rainbow ? [-Math.PI * 0.42, 0, 0] : [0, 0, 0]}>
+        <instancedMesh ref={petals} visible={!simple && (!bloom || c.id === 'ajna')} args={[undefined, undefined, n]} rotation={rainbow ? [-Math.PI * 0.42, 0, 0] : [0, 0, 0]}>
           <sphereGeometry args={[1, 10, 8]} />
           <meshBasicMaterial ref={petalMat} transparent opacity={0.85} toneMapped={false} depthWrite={false} />
         </instancedMesh>
@@ -451,6 +462,113 @@ function BloomPetals({
       <sphereGeometry args={[1, 12, 8]} />
       <meshBasicMaterial ref={matRef} transparent opacity={0.85} toneMapped={false} depthWrite={false} side={THREE.DoubleSide} />
     </instancedMesh>
+  );
+}
+
+/** Simple style: the Chakra Dharana symbols as thin 3D shapes facing the front (units = figure units × S). */
+const tri = (r: number, up: boolean) => {
+  const s = up ? 1 : -1;
+  const sh = new THREE.Shape();
+  sh.moveTo(0, s * r * S);
+  sh.lineTo(0.866 * r * S, -s * (r / 2) * S);
+  sh.lineTo(-0.866 * r * S, -s * (r / 2) * S);
+  sh.closePath();
+  return sh;
+};
+const EXTRUDE = { depth: 0.025, bevelEnabled: false };
+function SimpleSymbol({ c, groupRef }: { c: Chakra; groupRef: React.RefObject<THREE.Group | null> }) {
+  const col = c.color.rainbow ? '#c9a7ff' : c.color.primary;
+  const ink = c.color.ink;
+  const geo = useMemo(() => {
+    switch (c.id) {
+      case 'manipura':
+        return [new THREE.ExtrudeGeometry(tri(11, true), EXTRUDE)];
+      case 'anahata':
+        return [new THREE.ExtrudeGeometry(tri(11, true), EXTRUDE), new THREE.ExtrudeGeometry(tri(11, false), EXTRUDE)];
+      case 'svadhisthana': {
+        // crescent, horns up: outer circle r 11 (centre 0) minus circle r 9.5 (centre +4.5); they meet at (±9.43, 5.67)
+        const sh = new THREE.Shape();
+        const o0 = Math.atan2(5.667, -9.43), o1 = Math.atan2(5.667, 9.43) + 2 * Math.PI; // via the bottom
+        const i0 = Math.atan2(1.167, 9.43), i1 = Math.atan2(1.167, -9.43) - 2 * Math.PI;
+        for (let k = 0; k <= 32; k++) {
+          const a = o0 + ((o1 - o0) * k) / 32;
+          const px = Math.cos(a) * 11 * S, py = Math.sin(a) * 11 * S;
+          if (k) sh.lineTo(px, py);
+          else sh.moveTo(px, py);
+        }
+        for (let k = 0; k <= 32; k++) {
+          const a = i0 + ((i1 - i0) * k) / 32;
+          sh.lineTo(Math.cos(a) * 9.5 * S, (4.5 + Math.sin(a) * 9.5) * S);
+        }
+        return [new THREE.ExtrudeGeometry(sh, EXTRUDE)];
+      }
+      case 'ajna': {
+        const sh = new THREE.Shape();
+        sh.moveTo(-13 * S, 0);
+        sh.quadraticCurveTo(0, 10 * S, 13 * S, 0);
+        sh.quadraticCurveTo(0, -10 * S, -13 * S, 0);
+        return [new THREE.ExtrudeGeometry(sh, { ...EXTRUDE, curveSegments: 24 })];
+      }
+      default:
+        return [];
+    }
+  }, [c.id]);
+  const mat = (color: string) => <meshBasicMaterial color={color} transparent toneMapped={false} />;
+  return (
+    <group ref={groupRef} position={[0, 0, 0.03]}>
+      {c.id === 'muladhara' && (
+        <>
+          <mesh position={[0, 0, -0.005]}>
+            <boxGeometry args={[0.17, 0.17, 0.02]} />
+            {mat('#d7263d')}
+          </mesh>
+          <mesh>
+            <boxGeometry args={[0.14, 0.14, 0.03]} />
+            {mat('#f2c230')}
+          </mesh>
+          <mesh position={[0, -0.005, 0.02]} geometry={new THREE.ExtrudeGeometry(tri(4.5, false), { depth: 0.005, bevelEnabled: false })}>
+            {mat('#d7263d')}
+          </mesh>
+        </>
+      )}
+      {c.id === 'vishuddha' && (
+        <mesh rotation={[Math.PI / 2, 0, 0]}>
+          <cylinderGeometry args={[0.075, 0.075, 0.03, 32]} />
+          {mat(col)}
+        </mesh>
+      )}
+      {(c.id === 'manipura' || c.id === 'anahata' || c.id === 'svadhisthana') &&
+        geo.map((g, i) => (
+          <mesh key={i} geometry={g} position={[0, 0, -0.0125]}>
+            {mat(col)}
+          </mesh>
+        ))}
+      {c.id === 'ajna' && (
+        <>
+          <mesh geometry={geo[0]} position={[0, 0, -0.0125]}>
+            {mat('#fbf8ef')}
+          </mesh>
+          <mesh position={[0, 0, 0.016]}>
+            <circleGeometry args={[0.038, 24]} />
+            {mat(ink)}
+          </mesh>
+          <mesh position={[0, 0, 0.017]}>
+            <circleGeometry args={[0.018, 16]} />
+            {mat('#fbf8ef')}
+          </mesh>
+        </>
+      )}
+      {c.id === 'sahasrara' &&
+        Array.from({ length: 11 }, (_, i) => {
+          const a = ((-75 + i * 15) * Math.PI) / 180;
+          return (
+            <mesh key={i} position={[Math.sin(a) * 0.08, 0.04 + Math.cos(a) * 0.08, 0]} rotation={[0, 0, -a]} scale={[0.028, 0.085, 0.02]}>
+              <sphereGeometry args={[1, 12, 8]} />
+              {mat(`hsl(${(i / 10) * 300}, 90%, 58%)`)}
+            </mesh>
+          );
+        })}
+    </group>
   );
 }
 
@@ -762,7 +880,7 @@ export function CameraRig({ preset, nonce, reduce }: { preset: Preset; nonce: nu
 
 /* ------------------------------------------------------------------ scene */
 
-export type LotusStyle = 'flat' | 'bloom';
+export type LotusStyle = 'flat' | 'bloom' | 'simple';
 
 export function Scene({ layers, dark, onSelect, lotus = 'flat' }: { layers: Layers; dark: boolean; onSelect: (id: ChakraId) => void; lotus?: LotusStyle }) {
   const ida = NADIS.find((n) => n.id === 'ida')!;
@@ -780,7 +898,7 @@ export function Scene({ layers, dark, onSelect, lotus = 'flat' }: { layers: Laye
       )}
       {layers.ida && <Braid side={-1} color={dark ? ida.color : ida.colorLight} />}
       {layers.pingala && <Braid side={1} color={dark ? pingala.color : pingala.colorLight} />}
-      {layers.chakras && CHAKRAS.map((c) => <ChakraNode key={c.id} c={c} dark={dark} onSelect={onSelect} om={layers.om} bloom={lotus === 'bloom'} />)}
+      {layers.chakras && CHAKRAS.map((c) => <ChakraNode key={c.id} c={c} dark={dark} onSelect={onSelect} om={layers.om} bloom={lotus === 'bloom'} simple={lotus === 'simple'} />)}
       {!layers.chakras && layers.om && CHAKRAS.map((c) => (
         <group key={c.id} position={chakraPos(c)}>
           <OmSpokes c={c} dark={dark} />

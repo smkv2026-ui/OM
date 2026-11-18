@@ -28,7 +28,8 @@ export default function ThreeD() {
   const [showDharana, setShowDharana] = useState(false);
   const [lotus, setLotusState] = useState<LotusStyle>(() => {
     try {
-      return localStorage.getItem('om-lotus') === 'bloom' ? 'bloom' : 'flat';
+      const v = localStorage.getItem('om-lotus');
+      return v === 'bloom' || v === 'simple' ? v : 'flat';
     } catch {
       return 'flat';
     }
@@ -115,6 +116,7 @@ export default function ThreeD() {
                     options={[
                       { value: 'flat', label: 'Flat (rotating ring)', title: 'Petal ring facing you; turns clockwise up, anticlockwise down' },
                       { value: 'bloom', label: 'Bloom (opens upward)', title: 'Closed bud that opens upward into a lotus cup when switched on' },
+                      { value: 'simple', label: 'Simple', title: 'Plain chakra symbols (Chakra Dharana figure)' },
                     ]}
                   />
                 </div>
@@ -156,6 +158,22 @@ export default function ThreeD() {
           {showLayers && (desktop || !showDharana) && (
             <div className="glass pointer-events-auto flex max-w-full flex-wrap justify-center gap-1.5 rounded-2xl p-2" role="group" aria-label="Layers">
               <LayerChips value={layers} onChange={setLayers} extra={EXTRA_LAYERS} />
+              <div className="mt-2 flex w-full items-center gap-2">
+                <span className="text-xs text-muted">Chakra style</span>
+                <div className="flex-1">
+                  <Segmented<LotusStyle>
+                    label="Chakra style"
+                    size="sm"
+                    value={lotus}
+                    onChange={setLotus}
+                    options={[
+                      { value: 'flat', label: 'Flat' },
+                      { value: 'bloom', label: 'Bloom' },
+                      { value: 'simple', label: 'Simple' },
+                    ]}
+                  />
+                </div>
+              </div>
             </div>
           )}
           <div className="pointer-events-auto flex w-full max-w-[560px] items-center gap-2">
