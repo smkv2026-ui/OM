@@ -2,10 +2,12 @@ import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type Poin
 import { createPortal } from 'react-dom';
 import { ChevronLeft, PlayIcon, ResetIcon, StopIcon } from '../components/Icons';
 import { SensorAudioList } from '../components/SensorAudio';
+import { DevicePanel } from '../components/DevicePanel';
+import { deviceHooks, emergencyStop, retune, useDevice, useDeviceSettings } from '../engine/device';
 import { Dock } from '../components/Sheet';
 import { TopBar } from '../components/Shell';
 import { Button, Section, Segmented, Slider, Toggle } from '../components/ui';
-import { NADIS } from '../data';
+import { CHAKRAS, NADIS, type ChakraId } from '../data';
 import { audioKey, useAudioClips } from '../engine/audioStore';
 import { NadiEngine, type Silhouette } from '../engine/nadiEngine';
 import { Sequencer } from '../engine/sequencer';
@@ -131,17 +133,67 @@ export default function NadiHarmony() {
     if (n === count) return;
     stopPlayback();
     engine.current!.setCount(n);
+    if (n === 7) {
+      // the 7-sensor frequencies are the device's per-chakra frequencies
+      const v = useDeviceSettings.getState().vib;
+      CHAKRAS.forEach((c) => (engine.current!.freqs[c.sensorId] = v[c.id].freq));
+    }
     setFreqs({ ...engine.current!.freqs });
     setCount(n);
   };
   const reset = () => {
     engine.current!.resetEnergy();
+    if (count === 7) CHAKRAS.forEach((c) => useDeviceSettings.getState().setVib(c.id, { freq: 10 }));
     setFreqs({ ...engine.current!.freqs });
   };
   const setFreq = (id: string, v: number) => {
     engine.current!.freqs[id] = v;
     setFreqs((f) => ({ ...f, [id]: v }));
+    // 7-sensor sliders and the device's per-chakra frequency are the same setting
+    const ck = count === 7 ? CHAKRAS.find((c) => c.sensorId === id) : undefined;
+    if (ck) {
+      useDeviceSettings.getState().setVib(ck.id, { freq: v });
+      retune(ck.id);
+    }
   };
+  const onDeviceFreq = (id: ChakraId, f: number) => {
+    if (count !== 7 || !engine.current) return;
+    const sid = CHAKRAS.find((c) => c.id === id)!.sensorId;
+    engine.current.freqs[sid] = f;
+    setFreqs((fs) => ({ ...fs, [sid]: f }));
+  };
+
+  /* ---------------------------------------------------------------- sensor device ↔ visualisation */
+  const devActive = useDevice((s) => s.active);
+  const devPlaying = useDevice((s) => s.playing);
+  const vib = useDeviceSettings((s) => s.vib);
+  useEffect(() => {
+    const e = engine.current;
+    if (!e) return;
+    e.devicePulses = devActive.map((id) => {
+      const c = CHAKRAS.find((k) => k.id === id)!;
+      return { ratio: c.targetYRatio, color: c.color.rainbow ? '#c9a7ff' : c.color.primary, freq: vib[id].freq, intensity: vib[id].intensity / 100 };
+    });
+  }, [devActive, vib]);
+  useEffect(() => {
+    deviceHooks.onStep = (ids) => {
+      const e = engine.current;
+      if (!e || seq.current.active) return;
+      if (ids.length === 1) {
+        const c = CHAKRAS.find((k) => k.id === ids[0])!;
+        if (!e.marker.active) e.marker.y = c.targetYRatio + 60 / 300;
+        e.marker.active = true;
+        e.marker.target = c.targetYRatio;
+      } else e.marker.active = false;
+    };
+    deviceHooks.onEnd = () => {
+      if (engine.current && !seq.current.active) engine.current.marker.active = false;
+    };
+    return () => {
+      deviceHooks.onStep = undefined;
+      deviceHooks.onEnd = undefined;
+    };
+  }, []);
   const toggleDrone = (on: boolean) => {
     engine.current!.drone.setEnabled(on);
     setDrone(on);
@@ -334,6 +386,9 @@ export default function NadiHarmony() {
           {Object.keys(clips).filter((k) => k.startsWith(`${count}_`)).length > 0 && ' Assigned sounds are saved on this device.'}
         </p>
       </Section>
+      <Section title="Sensor device">
+        <DevicePanel onFreq={onDeviceFreq} />
+      </Section>
       <Section title="Channels">
         <div className="glass rounded-xl px-3">
           <Toggle id="braid" label="Show Ida & Pingala" checked={braid} onChange={setBraid} />
@@ -411,6 +466,19 @@ export default function NadiHarmony() {
               />
             </div>
           </div>
+
+          {(devPlaying || devActive.length > 0) && (
+            <div className="absolute left-3 z-10 lg:left-4" style={{ bottom: desktop ? 16 : 140 }}>
+              <button
+                className="btn !rounded-full font-semibold"
+                style={{ background: 'color-mix(in oklab, var(--magenta) 30%, var(--surface-strong))', borderColor: 'var(--magenta)' }}
+                onClick={emergencyStop}
+                aria-label="Stop all vibration"
+              >
+                <StopIcon size={14} /> STOP
+              </button>
+            </div>
+          )}
 
           {hint && (
             <div role="status" className="glass absolute top-1/2 left-1/2 w-[min(90%,320px)] -translate-x-1/2 rounded-2xl px-4 py-3 text-center text-sm" onClick={() => setHint(null)}>

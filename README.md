@@ -66,6 +66,21 @@ npm run test:offline
 
 Checks the manifest and service worker, then reloads every route offline (needs `npm run preview` running on port 4173).
 
+## Sensor device (hardware on hold)
+
+Nadi Harmony → **Sensor device** drives a 7-channel vibration device (one pad per chakra) over **Bluetooth LE**. The app does all sequencing; the device only executes commands. The protocol firmware must implement is in [`docs/DEVICE_PROTOCOL.md`](docs/DEVICE_PROTOCOL.md).
+
+- **Connect Bluetooth** (Chrome or Edge on Android, Windows, macOS, Linux; on iPhone/iPad use the Bluefy browser) or **Use simulator** (phone vibration on Android, on-screen rings everywhere).
+- **Per chakra:** include in play mode, frequency 10–100 Hz (shared with the 7-sensor sliders), intensity 0–100 %, **Test** (1 s pulse) and **Hold** (continuous; moving a slider retunes it live).
+- **Play mode:** Up, Down, Up & down, Together or a Custom order; time per chakra, pause between, rounds, optional sync with each chakra's Dharana sound. The marker and rippling rings on the figure follow the device.
+- **STOP ALL VIBRATION** in the panel, plus a floating STOP on the stage whenever anything is vibrating.
+
+Test without hardware (a fake Bluetooth device records every command byte; needs `npm run dev`):
+
+```bash
+node scripts/test-device.cjs device.png
+```
+
 ---
 
 ## Project structure

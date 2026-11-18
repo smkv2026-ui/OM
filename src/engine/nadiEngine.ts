@@ -88,6 +88,8 @@ export class NadiEngine {
   reduce = false;
   showBraid = true;
   marker = { active: false, y: 0, target: 0 };
+  /** Chakras currently vibrating on the sensor device: drawn as rings rippling at their frequency. */
+  devicePulses: { ratio: number; color: string; freq: number; intensity: number }[] = [];
   readonly drone = new Drone();
   onFrame?: (alignment: number, avgFreq: number) => void;
   onLayout?: () => void;
@@ -292,6 +294,7 @@ export class NadiEngine {
       this.drawSensorCircles();
       this.drawSensorGlow(1);
     }
+    this.drawDevicePulses();
     this.drawMarker(dt);
     this.drone.update(a, freq);
     this.onFrame?.(a, freq);
@@ -660,6 +663,27 @@ export class NadiEngine {
       ctx.arc(pos.x, pos.y, r * 1.8, 0, Math.PI * 2);
       ctx.fillStyle = g;
       ctx.fill();
+    }
+  }
+
+  private drawDevicePulses() {
+    const { ctx } = this;
+    for (const p of this.devicePulses) {
+      const x = this.cx;
+      const y = this.cy + p.ratio * this.unit;
+      const k = Math.max(0.8, this.s);
+      // ring phase advances at a visible fraction of the vibration frequency
+      const speed = 0.4 + p.freq / 60;
+      for (let r = 0; r < 3; r++) {
+        const ph = ((this.time / 1000) * speed + r / 3) % 1;
+        ctx.beginPath();
+        ctx.arc(x, y, (14 + ph * 34) * k, 0, Math.PI * 2);
+        ctx.strokeStyle = p.color;
+        ctx.globalAlpha = (1 - ph) * (0.35 + 0.6 * p.intensity);
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
     }
   }
 
