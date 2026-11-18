@@ -9,3 +9,4 @@ reference/pranas/
 reference/body-views/
 test-results
 screenshots/tmp
+*.tsbuildinfo
