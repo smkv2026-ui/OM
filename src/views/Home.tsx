@@ -25,6 +25,21 @@ export default function Home() {
   const matrika = useSettings((s) => s.matrika);
   const setMatrika = useSettings((s) => s.setMatrika);
   const desktop = useIsDesktop();
+  const [simple, setSimpleState] = useState(() => {
+    try {
+      return localStorage.getItem('om-home-simple') === '1';
+    } catch {
+      return false;
+    }
+  });
+  const setSimple = (v: boolean) => {
+    setSimpleState(v);
+    try {
+      localStorage.setItem('om-home-simple', v ? '1' : '0');
+    } catch {
+      /* storage unavailable */
+    }
+  };
   const [labels, setLabels] = useState(() => matchMedia('(min-width: 1024px)').matches);
   const [layers, setLayers] = useState<AnatomyLayers>({ chakras: true, sushumna: true, ida: false, pingala: false, spine: true });
   const sheet = useUi((s) => s.sheet);
@@ -50,6 +65,9 @@ export default function Home() {
               <button className="btn !min-h-9 text-xs" aria-pressed={labels} onClick={() => setLabels(!labels)}>
                 Labels
               </button>
+              <button className="btn !min-h-9 text-xs" aria-pressed={simple} onClick={() => setSimple(!simple)} title="Simple view: plain chakra symbols">
+                Simple
+              </button>
               <LayerMenu value={layers} onChange={setLayers} />
             </>
           )}
@@ -62,7 +80,7 @@ export default function Home() {
             <Matrika />
           </Suspense>
         ) : (
-          <FigureStage view={view} labels={labels} layers={layers} selected={selected} wide={desktop} />
+          <FigureStage view={view} labels={labels} layers={layers} selected={selected} wide={desktop} simple={simple} />
         )}
       </div>
 
@@ -84,12 +102,14 @@ function FigureStage({
   view,
   labels,
   layers,
+  simple,
   selected,
   wide,
 }: {
   view: FigureView;
   labels: boolean;
   layers: AnatomyLayers;
+  simple: boolean;
   selected: ChakraId | null;
   wide: boolean;
 }) {
@@ -119,7 +139,7 @@ function FigureStage({
                 <Sushumna view={view} />
               </g>
             )}
-            {layers.chakras && <ChakraGlyphs view={view} onSelect={openChakra} selected={selected} />}
+            {layers.chakras && <ChakraGlyphs view={view} onSelect={openChakra} selected={selected} simple={simple} />}
             {showLabels && layers.chakras && <Labels view={view} wide={wide} />}
           </svg>
         </motion.div>

@@ -92,7 +92,7 @@ export class NadiEngine {
   /** Chakras currently vibrating on the sensor device: drawn as rings rippling at their frequency. */
   devicePulses: { ratio: number; color: string; freq: number; intensity: number }[] = [];
   /** How chakras are drawn: the prototype's dots, or flat lotus rings that rotate. */
-  chakraStyle: 'dots' | 'ring' = 'dots';
+  chakraStyle: 'dots' | 'ring' | 'simple' = 'dots';
   /** ring state: rotation angle per chakra; while the marker travels, chakras it has reached are lit
    *  and turn clockwise (+1, ascending) or anticlockwise (−1, descending). */
   private ringAngle = new Map<string, number>();
@@ -346,7 +346,7 @@ export class NadiEngine {
 
     if (this.layers.spine) this.drawSpine();
     if (this.layers.chakras && this.chakraStyle === 'ring') this.drawRings(a);
-    else if (this.layers.chakras && this.silhouette === 'dharana') this.drawDharanaGlyphs(a);
+    else if (this.layers.chakras && (this.chakraStyle === 'simple' || this.silhouette === 'dharana')) this.drawDharanaGlyphs(a);
 
     // The prototype's seven chakra dots (cyan once aligned > 0.8).
     if (this.layers.chakras && this.chakraStyle === 'dots') CHAKRAS.forEach((c) => {
@@ -506,22 +506,27 @@ export class NadiEngine {
             ctx.restore();
           }
           break;
-        case 'ajna':
-          ctx.fillStyle = '#f7f3e8';
+        case 'ajna': {
+          // a white eye between the brows
+          ctx.fillStyle = '#fbf8ef';
           ctx.strokeStyle = c.color.ink;
-          ctx.moveTo(-4, -2 + y);
-          ctx.quadraticCurveTo(-12, -8 + y, -18, y);
-          ctx.quadraticCurveTo(-12, 8 + y, -4, 2 + y);
-          ctx.moveTo(4, -2 + y);
-          ctx.quadraticCurveTo(12, -8 + y, 18, y);
-          ctx.quadraticCurveTo(12, 8 + y, 4, 2 + y);
+          ctx.lineWidth = 1.1;
+          ctx.moveTo(-12, y);
+          ctx.quadraticCurveTo(0, y - 9, 12, y);
+          ctx.quadraticCurveTo(0, y + 9, -12, y);
+          ctx.closePath();
           ctx.fill();
           ctx.stroke();
           ctx.beginPath();
-          ctx.arc(0, y, 4.5, 0, Math.PI * 2);
+          ctx.arc(0, y, 3.4, 0, Math.PI * 2);
           ctx.fill();
           ctx.stroke();
+          ctx.beginPath();
+          ctx.arc(0, y, 1.3, 0, Math.PI * 2);
+          ctx.fillStyle = c.color.ink;
+          ctx.fill();
           break;
+        }
         case 'vishuddha':
           ctx.arc(0, y, 6.5, 0, Math.PI * 2);
           ctx.fill();
@@ -547,9 +552,10 @@ export class NadiEngine {
           }
           break;
         case 'manipura':
-          ctx.moveTo(-8.5, y - 5);
-          ctx.lineTo(8.5, y - 5);
-          ctx.lineTo(0, y + 9);
+          // upward triangle of fire
+          ctx.moveTo(0, y - 10);
+          ctx.lineTo(8.7, y + 5);
+          ctx.lineTo(-8.7, y + 5);
           ctx.closePath();
           ctx.fill();
           ctx.stroke();
@@ -564,10 +570,17 @@ export class NadiEngine {
         case 'muladhara':
           ctx.fillStyle = '#f2c230';
           ctx.strokeStyle = '#d7263d';
-          ctx.rect(-6.5, y - 6.5, 13, 13);
+          ctx.rect(-7, y - 7, 14, 14);
           ctx.fill();
-          ctx.lineWidth = 1.8;
+          ctx.lineWidth = 1.6;
           ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(-3.5, y - 2);
+          ctx.lineTo(3.5, y - 2);
+          ctx.lineTo(0, y + 3.5);
+          ctx.closePath();
+          ctx.fillStyle = '#d7263d';
+          ctx.fill();
           break;
       }
     }

@@ -216,6 +216,7 @@ export function ChakraGlyphs({
   breathing = true,
   scale = 1,
   only,
+  simple = false,
 }: {
   view: FigureView;
   onSelect?: (id: ChakraId) => void;
@@ -223,6 +224,8 @@ export function ChakraGlyphs({
   breathing?: boolean;
   scale?: number;
   only?: ChakraId[];
+  /** Simple view: plain chakra symbols (fan, eye, circle, star, triangle, crescent, square). */
+  simple?: boolean;
 }) {
   const list = only ? CHAKRAS.filter((c) => only.includes(c.id)) : CHAKRAS;
   return (
@@ -233,7 +236,9 @@ export function ChakraGlyphs({
         return (
           <ChakraHit key={c.id} chakra={c} x={p.x} y={p.y} r={Math.max(s / 2, 21)} onSelect={onSelect} selected={selected === c.id}>
             <g className={breathing ? 'anim-breathe' : ''} style={{ animationDelay: `${-i * 0.7}s` }}>
-              {view === 'side' ? (
+              {simple ? (
+                <SimpleGlyph chakra={c} x={p.x} y={p.y} />
+              ) : view === 'side' ? (
                 <SideNode chakra={c} x={p.x} y={p.y} />
               ) : view === 'back' ? (
                 <BackLotus chakra={c} x={p.x} y={p.y} />
@@ -438,4 +443,102 @@ export function BackLotus({ chakra: c, x, y }: { chakra: Chakra; x: number; y: n
       )}
     </g>
   );
+}
+
+/**
+ * Simple view symbol (the Chakra Dharana figure): Sahasrara a rainbow fan on the crown, Ajna a white
+ * eye, Vishuddha a disc, Anahata a six-pointed star, Manipura a triangle, Svadhisthana a crescent,
+ * Muladhara a yellow square — in the chakra colours.
+ */
+export function SimpleGlyph({ chakra: c, x, y }: { chakra: Chakra; x: number; y: number }) {
+  const id = useIds();
+  const col = c.color.rainbow ? '#c9a7ff' : c.color.primary;
+  const ink = c.color.rainbow ? '#7d4fd6' : c.color.ink;
+  const glow = (
+    <>
+      <defs>
+        <radialGradient id={id('g')}>
+          <stop offset="0" stopColor={col} stopOpacity="0.55" />
+          <stop offset="1" stopColor={col} stopOpacity="0" />
+        </radialGradient>
+      </defs>
+      <circle cx={x} cy={y} r={17} fill={`url(#${id('g')})`} className="anim-glow" />
+    </>
+  );
+  const tri = (r: number, up: boolean) => {
+    const s = up ? -1 : 1;
+    return `M${x} ${y + s * r} L${x + r * 0.866} ${y - (s * r) / 2} L${x - r * 0.866} ${y - (s * r) / 2}Z`;
+  };
+  switch (c.id) {
+    case 'sahasrara':
+      return (
+        <g>
+          {glow}
+          {Array.from({ length: 11 }, (_, i) => {
+            const a = ((-75 + i * 15) * Math.PI) / 180;
+            const bx = x;
+            const by = y + 4;
+            const tx = bx + Math.sin(a) * 15;
+            const ty = by - Math.cos(a) * 15;
+            const nx = Math.cos(a) * 3;
+            const ny = Math.sin(a) * 3;
+            return (
+              <path
+                key={i}
+                d={`M${bx} ${by}Q${(bx + tx) / 2 + nx} ${(by + ty) / 2 + ny} ${tx} ${ty}Q${(bx + tx) / 2 - nx} ${(by + ty) / 2 - ny} ${bx} ${by}Z`}
+                fill={`hsl(${(i / 10) * 300} 90% 58%)`}
+                stroke="rgba(0,0,0,.18)"
+                strokeWidth={0.4}
+              />
+            );
+          })}
+        </g>
+      );
+    case 'ajna':
+      return (
+        <g>
+          {glow}
+          <path d={`M${x - 12} ${y}Q${x} ${y - 9} ${x + 12} ${y}Q${x} ${y + 9} ${x - 12} ${y}Z`} fill="#fbf8ef" stroke={ink} strokeWidth={1.1} />
+          <circle cx={x} cy={y} r={3.4} fill="#fbf8ef" stroke={ink} strokeWidth={1.1} />
+          <circle cx={x} cy={y} r={1.3} fill={ink} />
+        </g>
+      );
+    case 'vishuddha':
+      return (
+        <g>
+          {glow}
+          <circle cx={x} cy={y} r={6.5} fill={col} stroke={ink} strokeWidth={0.8} />
+        </g>
+      );
+    case 'anahata':
+      return (
+        <g>
+          {glow}
+          <path d={`${tri(10, true)} ${tri(10, false)}`} fill={col} fillOpacity={0.85} stroke={ink} strokeWidth={1} strokeLinejoin="round" />
+        </g>
+      );
+    case 'manipura':
+      return (
+        <g>
+          {glow}
+          <path d={tri(10, true)} fill={col} stroke={ink} strokeWidth={1} strokeLinejoin="round" />
+        </g>
+      );
+    case 'svadhisthana':
+      return (
+        <g>
+          {glow}
+          <path d={`M${x - 10} ${y - 4} A10 10 0 0 0 ${x + 10} ${y - 4} A13 13 0 0 1 ${x - 10} ${y - 4}Z`} fill={col} stroke={ink} strokeWidth={1.1} />
+        </g>
+      );
+    case 'muladhara':
+      return (
+        <g>
+          {glow}
+          <rect x={x - 7} y={y - 7} width={14} height={14} fill="#f2c230" stroke="#d7263d" strokeWidth={1.4} />
+          <path d={`M${x - 3.5} ${y - 2} L${x + 3.5} ${y - 2} L${x} ${y + 3.5}Z`} fill="#d7263d" />
+        </g>
+      );
+  }
+  return null;
 }

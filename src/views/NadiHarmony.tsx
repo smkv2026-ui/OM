@@ -40,14 +40,15 @@ export default function NadiHarmony() {
   const [rounds, setRounds] = useState(1);
   const [playing, setPlaying] = useState(false);
   const [dockOpen, setDockOpen] = useState(() => matchMedia('(min-width: 1024px)').matches);
-  const [chakraStyle, setChakraStyleState] = useState<'dots' | 'ring'>(() => {
+  const [chakraStyle, setChakraStyleState] = useState<'dots' | 'ring' | 'simple'>(() => {
     try {
-      return localStorage.getItem('om-nadi-chakra-style') === 'ring' ? 'ring' : 'dots';
+      const v = localStorage.getItem('om-nadi-chakra-style');
+      return v === 'ring' || v === 'simple' ? v : 'dots';
     } catch {
       return 'dots';
     }
   });
-  const setChakraStyle = (v: 'dots' | 'ring') => {
+  const setChakraStyle = (v: 'dots' | 'ring' | 'simple') => {
     setChakraStyleState(v);
     try {
       localStorage.setItem('om-nadi-chakra-style', v);
@@ -410,13 +411,14 @@ export default function NadiHarmony() {
       </Section>
       <Section title="Layers">
         <LayerChips value={layers} onChange={setLayers} />
-        <Segmented<'dots' | 'ring'>
+        <Segmented<'dots' | 'ring' | 'simple'>
           label="Chakra style"
           size="sm"
           value={chakraStyle}
           onChange={setChakraStyle}
           options={[
             { value: 'dots', label: 'Dots', title: 'The original chakra points' },
+            { value: 'simple', label: 'Simple', title: 'Plain chakra symbols on a golden line (Chakra Dharana figure)' },
             { value: 'ring', label: 'Flat (rotating ring)', title: 'Petal rings; during playback they switch on and turn clockwise up, anticlockwise down' },
           ]}
         />
