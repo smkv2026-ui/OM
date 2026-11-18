@@ -368,7 +368,10 @@ function ChakraNode({ c, dark, onSelect, om, bloom, simple }: { c: Chakra; dark:
     // Simple style: the symbol turns like the petal ring (eye and crown fan stay upright)
     const sym = symbolRef.current;
     if (sym) {
-      if (D.enabled && dir && c.id !== 'ajna' && c.id !== 'sahasrara') sym.rotation.z -= dir * dt * 1.4;
+      // Simple style turns only the heart, throat disc and similar symmetric shapes; Muladhara (square),
+      // Svadhisthana (crescent), Manipura (triangle), Ajna (eye) and Sahasrara (fan) stay upright
+      const STILL = ['muladhara', 'svadhisthana', 'manipura', 'ajna', 'sahasrara'];
+      if (D.enabled && dir && !STILL.includes(c.id)) sym.rotation.z -= dir * dt * 1.4;
       sym.traverse((o) => {
         const m = (o as THREE.Mesh).material as THREE.MeshBasicMaterial | undefined;
         if (m && 'opacity' in m) m.opacity = 0.3 + 0.7 * Math.min(1, L);
