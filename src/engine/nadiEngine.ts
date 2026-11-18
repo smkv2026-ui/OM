@@ -1,0 +1,694 @@
+/**
+ * Nadi Harmony canvas engine — a typed, framework-free port of the prototype's
+ * animate() loop, rebuilt for DPR-crisp rendering, live theming and resize-safe state.
+ *
+ * Coordinates: the figure frame from figures/geometry.ts. A layout unit U = 300·s px
+ * (s ≤ ~1.15, smaller on phones). Ideal sensor spot = (cx, cy + targetYRatio·U), exactly the
+ * prototype's `centerY + ratio × 300` at s = 1. Sensor positions are stored as ratios of U
+ * relative to the centre, so they survive resize and rotation.
+ */
+import { CHAKRAS, NADIS } from '../data';
+import { braidPoints, CROSSINGS, FRONT_ARM_GAPS, FRONT_DETAILS, FRONT_LOOPS, FRONT_OUTLINE } from '../figures/geometry';
+import { Drone } from './drone';
+import { SENSOR_SETS, targetAlignment, type SensorConf, type SensorCount } from './sensors';
+
+export type Silhouette = 'default' | 'dharana';
+export type Channel = 'ida' | 'pingala' | 'sushumna';
+
+interface EngineTheme {
+  dark: boolean;
+  bodyTop: string;
+  bodyBottom: string;
+  bodyRim: string;
+  bodyDetail: string;
+  sushumna: string;
+  text: string;
+}
+
+const NUM_PARTICLES = 160;
+const NUM_NADIS = 50;
+const SENSOR_R = 26;
+
+class Particle {
+  x = 0;
+  y = 0;
+  speedY = 0;
+  radius = 0;
+  alpha = 0;
+  seed = 0;
+  reset(e: NadiEngine) {
+    const s = e.s;
+    this.y = e.cy + (220 - Math.random() * 440) * s;
+    this.x = e.cx + (Math.random() - 0.5) * 350 * s;
+    this.speedY = 0.5 + Math.random() * 1.5;
+    this.radius = 1 + Math.random() * 2;
+    this.alpha = 0.1 + Math.random() * 0.5;
+    this.seed = Math.random() * 100;
+  }
+  update(e: NadiEngine, a: number, freq: number, dt: number) {
+    const s = e.s;
+    const speedMult = 1 + freq / 30;
+    this.y -= this.speedY * speedMult * (0.5 + a * 1.5) * s * dt;
+    const targetX = e.cx + Math.sin((this.y / s) * 0.02 + this.seed) * (15 * (1 - a)) * s;
+    this.x += (targetX - this.x) * Math.min(1, (0.02 + a * 0.08) * dt);
+    if (this.y < e.cy - 220 * s) {
+      this.reset(e);
+      this.y = e.cy + 220 * s;
+    }
+  }
+}
+
+class Nadi {
+  phase = Math.random() * Math.PI * 2;
+  speed = 0.008 + Math.random() * 0.015;
+  amplitude = 60 + Math.random() * 120;
+  frequencyMod = 0.5 + Math.random() * 1.5;
+}
+
+export class NadiEngine {
+  readonly canvas: HTMLCanvasElement;
+  private ctx: CanvasRenderingContext2D;
+  dpr = 1;
+  w = 0;
+  h = 0;
+  cx = 0;
+  cy = 0;
+  /** scale: U = 300·s */
+  s = 1;
+  insets = { top: 0, bottom: 0, right: 0 };
+
+  sensorCount: SensorCount = 3;
+  set: SensorConf[] = SENSOR_SETS[3];
+  /** normalized: px = cx + rx·U */
+  placed = new Map<string, { rx: number; ry: number }>();
+  freqs: Record<string, number> = {};
+  alignment = 0;
+  silhouette: Silhouette = 'default';
+  reduce = false;
+  showBraid = true;
+  marker = { active: false, y: 0, target: 0 };
+  readonly drone = new Drone();
+  onFrame?: (alignment: number, avgFreq: number) => void;
+  onLayout?: () => void;
+
+  private particles: Particle[] = [];
+  private nadis: Nadi[] = [];
+  private theme!: EngineTheme;
+  private body = new Path2D(`${FRONT_OUTLINE} ${FRONT_ARM_GAPS.join(' ')}`);
+  private outline = new Path2D(FRONT_OUTLINE);
+  private details = (() => {
+    const p = new Path2D();
+    FRONT_DETAILS.forEach((d) => p.addPath(new Path2D(d)));
+    FRONT_LOOPS.forEach((l) => {
+      p.moveTo(l.cx + l.rx, l.cy);
+      p.ellipse(l.cx, l.cy, l.rx, l.ry, 0, 0, Math.PI * 2);
+    });
+    return p;
+  })();
+  private raf = 0;
+  private last = 0;
+  private time = 0;
+  private braid: { ida: [number, number][]; pingala: [number, number][] } = { ida: [], pingala: [] };
+  private ro: ResizeObserver;
+
+  constructor(canvas: HTMLCanvasElement) {
+    this.canvas = canvas;
+    this.ctx = canvas.getContext('2d')!;
+    this.setCount(3);
+    this.readTheme();
+    this.resize();
+    this.ro = new ResizeObserver(() => this.resize());
+    this.ro.observe(canvas.parentElement!);
+    addEventListener('om-theme', this.readTheme);
+  }
+
+  /* ------------------------------------------------------------------ state */
+
+  setCount(n: SensorCount) {
+    this.sensorCount = n;
+    this.set = SENSOR_SETS[n];
+    this.placed.clear();
+    this.freqs = {};
+    this.set.forEach((c) => (this.freqs[c.id] = 10));
+    this.onLayout?.();
+  }
+
+  get unit() {
+    return 300 * this.s;
+  }
+
+  ideal(c: SensorConf) {
+    return { x: this.cx, y: this.cy + c.targetYRatio * this.unit };
+  }
+
+  sensorPos(id: string) {
+    const p = this.placed.get(id);
+    return p ? { x: this.cx + p.rx * this.unit, y: this.cy + p.ry * this.unit } : null;
+  }
+
+  placeSensor(id: string, x: number, y: number) {
+    if (!this.set.find((c) => c.id === id)) return;
+    const cx = Math.max(8, Math.min(this.w - 8, x));
+    const cy = Math.max(8, Math.min(this.h - 8, y));
+    this.placed.delete(id); // re-insert last (draw order like the prototype's filter+push)
+    this.placed.set(id, { rx: (cx - this.cx) / this.unit, ry: (cy - this.cy) / this.unit });
+    this.onLayout?.();
+  }
+
+  resetEnergy() {
+    this.placed.clear();
+    this.set.forEach((c) => (this.freqs[c.id] = 10));
+    this.onLayout?.();
+  }
+
+  avgFrequency() {
+    const v = Object.values(this.freqs);
+    return v.length ? v.reduce((a, b) => a + b, 0) / v.length : 10;
+  }
+
+  readTheme = () => {
+    const cs = getComputedStyle(document.documentElement);
+    const v = (n: string) => cs.getPropertyValue(n).trim();
+    this.theme = {
+      dark: document.documentElement.dataset.theme !== 'light',
+      bodyTop: v('--body-top'),
+      bodyBottom: v('--body-bottom'),
+      bodyRim: v('--body-rim'),
+      bodyDetail: v('--body-detail'),
+      sushumna: v('--sushumna'),
+      text: v('--text'),
+    };
+  };
+
+  /* ------------------------------------------------------------------ layout */
+
+  resize = () => {
+    const parent = this.canvas.parentElement!;
+    const w = parent.clientWidth;
+    const h = parent.clientHeight;
+    if (!w || !h) return;
+    this.dpr = Math.min(window.devicePixelRatio || 1, 2);
+    this.canvas.width = Math.round(w * this.dpr);
+    this.canvas.height = Math.round(h * this.dpr);
+    this.canvas.style.width = `${w}px`;
+    this.canvas.style.height = `${h}px`;
+    const oldParticles = this.particles.length === 0;
+    this.w = w;
+    this.h = h;
+    const availH = h - this.insets.top - this.insets.bottom;
+    const availW = w - this.insets.right;
+    // Figure spans ~400 units tall (incl. crown glyph) and ~370 wide.
+    this.s = Math.max(0.45, Math.min(1.6, (availH - 16) / 410, (availW - 12) / 380));
+    this.cx = availW / 2;
+    this.cy = this.insets.top + availH / 2 + 8 * this.s;
+    if (oldParticles) {
+      this.nadis = Array.from({ length: NUM_NADIS }, () => new Nadi());
+      this.particles = Array.from({ length: NUM_PARTICLES }, () => {
+        const p = new Particle();
+        p.reset(this);
+        return p;
+      });
+    } else {
+      this.particles.forEach((p) => p.reset(this));
+    }
+    this.onLayout?.();
+  };
+
+  setInsets(i: Partial<NadiEngine['insets']>) {
+    this.insets = { ...this.insets, ...i };
+    this.resize();
+  }
+
+  /* ------------------------------------------------------------------ hit tests */
+
+  channelAt(px: number, py: number): Channel | null {
+    const ux = (px - this.cx) / this.s;
+    const uy = (py - this.cy) / this.s;
+    if (uy < -180 || uy > 165) return null;
+    if (this.showBraid && uy > CROSSINGS[CROSSINGS.length - 1] && uy < CROSSINGS[0]) {
+      for (const k of ['ida', 'pingala'] as const) {
+        const pts = this.braid[k];
+        let best = pts[0];
+        for (const p of pts) if (Math.abs(p[1] - uy) < Math.abs(best[1] - uy)) best = p;
+        if (best && Math.abs(best[0] - ux) < 9 && Math.abs(best[0]) > 4) return k;
+      }
+    }
+    if (Math.abs(ux) < 8) return 'sushumna';
+    return null;
+  }
+
+  /* ------------------------------------------------------------------ loop */
+
+  start() {
+    this.last = performance.now();
+    const loop = (t: number) => {
+      const dt = Math.max(0.25, Math.min(3, (t - this.last) / 16.667));
+      this.last = t;
+      this.frame(dt);
+      this.raf = requestAnimationFrame(loop);
+    };
+    this.raf = requestAnimationFrame(loop);
+  }
+
+  dispose() {
+    cancelAnimationFrame(this.raf);
+    this.ro.disconnect();
+    removeEventListener('om-theme', this.readTheme);
+    this.drone.dispose();
+  }
+
+  private frame(dt: number) {
+    const { ctx } = this;
+    const motion = this.reduce ? 0.12 : 1;
+    this.time += dt * 16.667 * motion;
+    ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    ctx.clearRect(0, 0, this.w, this.h);
+
+    const freq = this.avgFrequency();
+    const pts = new Map<string, { x: number; y: number }>();
+    this.placed.forEach((_, id) => pts.set(id, this.sensorPos(id)!));
+    const target = targetAlignment(this.set, pts, (c) => this.ideal(c), 85 * this.s);
+    this.alignment += (target - this.alignment) * (1 - Math.pow(1 - 0.08, dt));
+    const a = this.alignment;
+
+    const onDharana = this.silhouette === 'dharana';
+    if (onDharana) this.drawSensorCircles();
+    this.drawSilhouette(a);
+
+    const additive = this.theme.dark;
+    ctx.save();
+    if (additive) ctx.globalCompositeOperation = 'lighter';
+    if (!this.reduce) {
+      for (const p of this.particles) {
+        p.update(this, a, freq, dt);
+        this.drawParticle(p, a);
+      }
+    }
+    for (const n of this.nadis) {
+      n.phase += n.speed * (1 + freq * 0.02) * dt * motion;
+      this.drawNadi(n, a, freq);
+    }
+    ctx.restore();
+
+    if (this.showBraid) this.drawBraid(a);
+    this.drawSushumna(a);
+    this.drawUnifiedStream(a, freq);
+    if (onDharana) this.drawSensorGlow(0.45);
+    else {
+      this.drawSensorCircles();
+      this.drawSensorGlow(1);
+    }
+    this.drawMarker(dt);
+    this.drone.update(a, freq);
+    this.onFrame?.(a, freq);
+  }
+
+  /* ------------------------------------------------------------------ drawing */
+
+  private drawSilhouette(a: number) {
+    const { ctx, s, theme } = this;
+    ctx.save();
+    ctx.translate(this.cx, this.cy);
+    ctx.scale(s, s);
+
+    const aura = ctx.createRadialGradient(0, 0, 20, 0, 0, 220);
+    aura.addColorStop(0, `rgba(0, 243, 255, ${0.02 + a * 0.15})`);
+    aura.addColorStop(0.7, `rgba(255, 42, 109, ${0.02 + (1 - a) * 0.05})`);
+    aura.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = aura;
+    ctx.beginPath();
+    ctx.arc(0, 0, 240, 0, Math.PI * 2);
+    ctx.fill();
+
+    const g = ctx.createLinearGradient(0, -200, 0, 185);
+    g.addColorStop(0, theme.bodyTop);
+    g.addColorStop(1, theme.bodyBottom);
+    ctx.globalAlpha = 0.92;
+    ctx.fillStyle = g;
+    ctx.fill(this.body, 'evenodd');
+    ctx.globalAlpha = 1;
+    ctx.shadowColor = theme.bodyRim;
+    ctx.shadowBlur = 10 * s;
+    ctx.strokeStyle = theme.bodyRim;
+    ctx.lineWidth = 1.2;
+    ctx.stroke(this.outline);
+    ctx.shadowBlur = 0;
+    ctx.stroke(this.body);
+    ctx.strokeStyle = theme.bodyDetail;
+    ctx.lineWidth = 0.9;
+    ctx.lineCap = 'round';
+    ctx.stroke(this.details);
+
+    if (this.silhouette === 'dharana') this.drawDharanaGlyphs(a);
+
+    // The prototype's seven chakra dots (cyan once aligned > 0.8).
+    CHAKRAS.forEach((c) => {
+      const y = c.targetYRatio * 300;
+      ctx.beginPath();
+      ctx.arc(0, y, this.silhouette === 'dharana' ? 1.8 : 4, 0, Math.PI * 2);
+      ctx.fillStyle = a > 0.8 ? 'rgba(0, 243, 255, 0.9)' : theme.dark ? 'rgba(255,255,255,0.25)' : 'rgba(60,40,20,0.25)';
+      if (a > 0.8) {
+        ctx.shadowColor = '#00f3ff';
+        ctx.shadowBlur = 10;
+      }
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    });
+    ctx.restore();
+  }
+
+  /** Chakra Dharana figure: golden Sushumna and a tattva glyph per centre. */
+  private drawDharanaGlyphs(a: number) {
+    const { ctx, theme } = this;
+    ctx.save();
+    ctx.strokeStyle = theme.sushumna;
+    ctx.shadowColor = theme.sushumna;
+    ctx.shadowBlur = 8;
+    ctx.lineWidth = 2.4;
+    ctx.beginPath();
+    ctx.moveTo(0, 160);
+    ctx.lineTo(0, -160);
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+    const glow = (y: number, col: string, r: number) => {
+      const gr = ctx.createRadialGradient(0, y, 0, 0, y, r);
+      gr.addColorStop(0, col + 'aa');
+      gr.addColorStop(1, col + '00');
+      ctx.fillStyle = gr;
+      ctx.beginPath();
+      ctx.arc(0, y, r, 0, Math.PI * 2);
+      ctx.fill();
+    };
+    for (const c of CHAKRAS) {
+      const y = c.targetYRatio * 300;
+      const col = c.color.rainbow ? '#c9a7ff' : c.color.primary;
+      glow(y, col, 16 + a * 8);
+      ctx.lineWidth = 1.4;
+      ctx.lineJoin = 'round';
+      ctx.strokeStyle = theme.dark ? col : c.color.ink;
+      ctx.fillStyle = col;
+      ctx.beginPath();
+      switch (c.id) {
+        case 'sahasrara':
+          for (let i = 0; i < 9; i++) {
+            const ang = (-170 + i * 20) * (Math.PI / 180);
+            ctx.save();
+            ctx.translate(0, y + 6);
+            ctx.rotate(ang + Math.PI / 2);
+            ctx.beginPath();
+            ctx.ellipse(0, -11, 3.4, 10, 0, 0, Math.PI * 2);
+            ctx.fillStyle = `hsl(${i * 40 + this.time * 0.02} 90% 60%)`;
+            ctx.fill();
+            ctx.restore();
+          }
+          break;
+        case 'ajna':
+          ctx.fillStyle = '#f7f3e8';
+          ctx.strokeStyle = c.color.ink;
+          ctx.moveTo(-4, -2 + y);
+          ctx.quadraticCurveTo(-12, -8 + y, -18, y);
+          ctx.quadraticCurveTo(-12, 8 + y, -4, 2 + y);
+          ctx.moveTo(4, -2 + y);
+          ctx.quadraticCurveTo(12, -8 + y, 18, y);
+          ctx.quadraticCurveTo(12, 8 + y, 4, 2 + y);
+          ctx.fill();
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.arc(0, y, 4.5, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+          break;
+        case 'vishuddha':
+          ctx.arc(0, y, 6.5, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.beginPath();
+          ctx.arc(0, y, 3.4, 0, Math.PI * 2);
+          ctx.fillStyle = '#f4f1ff';
+          ctx.fill();
+          break;
+        case 'anahata':
+          for (const off of [0, 60]) {
+            ctx.beginPath();
+            for (let k = 0; k < 3; k++) {
+              const t = ((off + k * 120) * Math.PI) / 180;
+              const px = 9 * Math.sin(t);
+              const py = y - 9 * Math.cos(t);
+              k ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
+            }
+            ctx.closePath();
+            ctx.globalAlpha = 0.35;
+            ctx.fill();
+            ctx.globalAlpha = 1;
+            ctx.stroke();
+          }
+          break;
+        case 'manipura':
+          ctx.moveTo(-8.5, y - 5);
+          ctx.lineTo(8.5, y - 5);
+          ctx.lineTo(0, y + 9);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+          break;
+        case 'svadhisthana':
+          ctx.arc(0, y + 1, 8, 0, Math.PI);
+          ctx.arc(0, y - 1.5, 7, Math.PI * 0.95, Math.PI * 0.05, true);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+          break;
+        case 'muladhara':
+          ctx.fillStyle = '#f2c230';
+          ctx.strokeStyle = '#d7263d';
+          ctx.rect(-6.5, y - 6.5, 13, 13);
+          ctx.fill();
+          ctx.lineWidth = 1.8;
+          ctx.stroke();
+          break;
+      }
+    }
+    ctx.restore();
+  }
+
+  private drawParticle(p: Particle, a: number) {
+    const { ctx } = this;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, (p.radius + a) * Math.max(0.7, this.s), 0, Math.PI * 2);
+    if (this.theme.dark) ctx.fillStyle = a > 0.6 ? `rgba(0, 243, 255, ${p.alpha})` : `rgba(255, 183, 3, ${p.alpha * 0.7})`;
+    else ctx.fillStyle = a > 0.6 ? `rgba(14, 138, 163, ${p.alpha})` : `rgba(184, 120, 20, ${p.alpha * 0.7})`;
+    ctx.fill();
+  }
+
+  private drawNadi(n: Nadi, a: number, freq: number) {
+    const { ctx, s, cx, cy } = this;
+    const startY = cy + 200 * s;
+    const endY = cy - 200 * s;
+    const steps = 40;
+    const stepY = (startY - endY) / steps;
+    ctx.beginPath();
+    ctx.moveTo(cx, startY);
+    const now = this.time;
+    for (let i = 0; i <= steps; i++) {
+      const y = startY - i * stepY;
+      const progress = i / steps;
+      const wave = Math.sin(n.phase + progress * Math.PI * 4 * n.frequencyMod);
+      const chaos = wave * n.amplitude * s * Math.sin(progress * Math.PI) * (1 - a);
+      const micro = a > 0.8 ? Math.sin(now * 0.01 + progress * 10) * (freq * 0.05) * s : 0;
+      ctx.lineTo(cx + chaos + micro, y);
+    }
+    const hue = 350 - a * 160;
+    const dark = this.theme.dark;
+    const lightness = dark ? 50 + a * 25 : 42 + a * 8;
+    const alpha = (dark ? 0.15 : 0.22) + a * 0.35 + Math.sin(n.phase) * 0.05;
+    ctx.strokeStyle = `hsla(${hue}, 90%, ${lightness}%, ${alpha})`;
+    ctx.lineWidth = (1 + a * 1.5 + freq * 0.01) * Math.max(0.75, s);
+    if (a > 0.7) {
+      ctx.shadowBlur = a * 12 + freq * 0.1;
+      ctx.shadowColor = `hsl(${hue}, 100%, 50%)`;
+    } else ctx.shadowBlur = 0;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+  }
+
+  /** Ida (lunar, cool) and Pingala (solar, warm) braiding around Sushumna, crossing at each chakra. */
+  private drawBraid(a: number) {
+    const { ctx, s, theme } = this;
+    const phase = this.time * 0.0012;
+    this.braid.ida = braidPoints(-1, 16, 1, phase);
+    this.braid.pingala = braidPoints(1, 16, 1, phase + 0.6);
+    ctx.save();
+    ctx.translate(this.cx, this.cy);
+    ctx.scale(s, s);
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    for (const k of ['ida', 'pingala'] as const) {
+      const nd = NADIS.find((n) => n.id === k)!;
+      const col = theme.dark ? nd.color : nd.colorLight;
+      const pts = this.braid[k];
+      const path = new Path2D();
+      pts.forEach(([x, y], i) => (i ? path.lineTo(x, y) : path.moveTo(x, y)));
+      ctx.globalAlpha = 0.35 + a * 0.35;
+      ctx.strokeStyle = col;
+      ctx.lineWidth = 2.6 + a;
+      ctx.shadowColor = col;
+      ctx.shadowBlur = 6 + a * 8;
+      ctx.stroke(path);
+      // flowing current (upward)
+      ctx.shadowBlur = 0;
+      ctx.globalAlpha = 0.6 + a * 0.4;
+      ctx.strokeStyle = theme.dark ? '#ffffff' : col;
+      ctx.lineWidth = 1.1;
+      ctx.setLineDash([3, 12]);
+      ctx.lineDashOffset = this.time * 0.03 * (k === 'ida' ? 1 : 1.15);
+      ctx.stroke(path);
+      ctx.setLineDash([]);
+    }
+    ctx.globalAlpha = 1;
+    // crossing points glow in the chakra colours; Ajna is the meeting point
+    CHAKRAS.filter((c) => c.id !== 'sahasrara').forEach((c) => {
+      const y = c.position.frontY;
+      const meet = c.id === 'ajna';
+      const r = (meet ? 12 : 8) + a * 6;
+      const col = c.color.primary;
+      const gr = ctx.createRadialGradient(0, y, 0, 0, y, r);
+      const al = Math.round((0.35 + a * 0.5) * 255)
+        .toString(16)
+        .padStart(2, '0');
+      gr.addColorStop(0, col + al);
+      gr.addColorStop(1, col + '00');
+      ctx.fillStyle = gr;
+      ctx.beginPath();
+      ctx.arc(0, y, r, 0, Math.PI * 2);
+      ctx.fill();
+    });
+    ctx.restore();
+  }
+
+  /** Sushumna — the hero channel, always present, brightest as alignment rises. */
+  private drawSushumna(a: number) {
+    const { ctx, s, theme } = this;
+    ctx.save();
+    ctx.translate(this.cx, this.cy);
+    ctx.scale(s, s);
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = theme.sushumna;
+    ctx.shadowColor = theme.sushumna;
+    ctx.shadowBlur = 10 + a * 14;
+    ctx.globalAlpha = 0.45 + a * 0.45;
+    ctx.lineWidth = 2 + a * 2;
+    ctx.beginPath();
+    ctx.moveTo(0, 160);
+    ctx.lineTo(0, -178);
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+    ctx.globalAlpha = 0.5 + a * 0.5;
+    ctx.strokeStyle = '#fff6dc';
+    ctx.lineWidth = 0.9;
+    ctx.setLineDash([8, 16]);
+    ctx.lineDashOffset = this.time * 0.05;
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  private drawUnifiedStream(a: number, freq: number) {
+    if (a <= 0.02) return;
+    const { ctx, s, cx, cy } = this;
+    const streamWidth = a * 12 * (1 + freq * 0.008) * Math.max(0.7, s);
+    const cyan = this.theme.dark ? '0, 243, 255' : '14, 138, 163';
+    ctx.save();
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(cx, cy + 150 * s);
+    ctx.lineTo(cx, cy - 190 * s);
+    ctx.lineWidth = streamWidth;
+    ctx.strokeStyle = `rgba(${cyan}, ${a * 0.8})`;
+    ctx.shadowColor = `rgb(${cyan})`;
+    ctx.shadowBlur = 20 * a + freq * 0.2;
+    ctx.stroke();
+    if (a > 0.5) {
+      ctx.lineWidth = streamWidth * 0.35;
+      ctx.strokeStyle = `rgba(255, 255, 255, ${a})`;
+      ctx.shadowColor = '#ffffff';
+      ctx.shadowBlur = 10;
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  private pulse(id: string) {
+    const f = this.freqs[id] || 10;
+    return Math.sin(this.time * 0.006 * (f / 15)) * 4;
+  }
+
+  private drawSensorCircles() {
+    const { ctx, theme } = this;
+    const k = Math.max(0.8, this.s);
+    for (const c of this.set) {
+      const pos = this.sensorPos(c.id);
+      if (!pos) continue;
+      const rgb = c.rgb.join(',');
+      const r = (SENSOR_R + this.pulse(c.id)) * k;
+      const ideal = this.ideal(c);
+      ctx.beginPath();
+      ctx.arc(ideal.x, ideal.y, 20 * k, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(${rgb}, ${theme.dark ? 0.3 : 0.55})`;
+      ctx.lineWidth = 1;
+      ctx.setLineDash([4, 4]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      ctx.beginPath();
+      ctx.arc(pos.x, pos.y, r, 0, Math.PI * 2);
+      ctx.fillStyle = theme.dark ? 'rgba(10, 10, 25, 0.6)' : 'rgba(255, 252, 245, 0.82)';
+      ctx.fill();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = theme.dark ? c.color : c.ink;
+      ctx.stroke();
+
+      ctx.fillStyle = theme.dark ? '#ffffff' : '#251e33';
+      const label = this.sensorCount === 7 ? c.short : c.name;
+      ctx.font = `600 ${label.length > 7 ? 9.5 : 11}px Inter, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(label, pos.x, pos.y);
+    }
+  }
+
+  private drawSensorGlow(mult: number) {
+    const { ctx } = this;
+    const k = Math.max(0.8, this.s);
+    for (const c of this.set) {
+      const pos = this.sensorPos(c.id);
+      if (!pos) continue;
+      const rgb = c.rgb.join(',');
+      const r = (SENSOR_R + this.pulse(c.id)) * k;
+      const g = ctx.createRadialGradient(pos.x, pos.y, 5, pos.x, pos.y, r * 1.8);
+      g.addColorStop(0, `rgba(${rgb}, ${0.5 * mult})`);
+      g.addColorStop(0.6, `rgba(${rgb}, ${0.15 * mult})`);
+      g.addColorStop(1, `rgba(${rgb}, 0)`);
+      ctx.beginPath();
+      ctx.arc(pos.x, pos.y, r * 1.8, 0, Math.PI * 2);
+      ctx.fillStyle = g;
+      ctx.fill();
+    }
+  }
+
+  /** Slow glowing diamond gliding to the sounding sensor (ratios, so it survives resize). */
+  private drawMarker(dt: number) {
+    const m = this.marker;
+    if (!m.active) return;
+    m.y += (m.target - m.y) * (1 - Math.pow(1 - 0.04, dt));
+    const { ctx } = this;
+    ctx.save();
+    ctx.translate(this.cx, this.cy + m.y * this.unit);
+    ctx.rotate(Math.PI / 4);
+    ctx.fillStyle = '#ffffff';
+    ctx.shadowColor = '#ffb703';
+    ctx.shadowBlur = 16;
+    ctx.fillRect(-6, -6, 12, 12);
+    ctx.strokeStyle = this.theme.dark ? 'rgba(255, 255, 255, 0.6)' : 'rgba(176, 125, 30, 0.9)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(-6, -6, 12, 12);
+    ctx.restore();
+  }
+}
