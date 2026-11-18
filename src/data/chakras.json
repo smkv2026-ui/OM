@@ -62,15 +62,15 @@
       "yoga-kundalini-upanishad"
     ],
     "position": {
-      "frontY": 148.5,
-      "backY": 147.7,
+      "frontY": 145,
+      "backY": 145,
       "backW": 21,
       "backH": 29,
       "sideX": 21.5,
       "sideY": 148.5,
       "size": 30
     },
-    "targetYRatio": 0.495,
+    "targetYRatio": 0.483,
     "omSpokes": 8
   },
   {
@@ -142,15 +142,15 @@
       "shandilya-upanishad"
     ],
     "position": {
-      "frontY": 105.6,
-      "backY": 109.8,
+      "frontY": 100,
+      "backY": 100,
       "backW": 24,
       "backH": 35,
-      "sideX": 12.6,
-      "sideY": 120.7,
+      "sideX": 11.2,
+      "sideY": 118,
       "size": 34
     },
-    "targetYRatio": 0.352,
+    "targetYRatio": 0.333,
     "omSpokes": 8
   },
   {
@@ -240,15 +240,15 @@
       "shandilya-upanishad"
     ],
     "position": {
-      "frontY": 66.3,
-      "backY": 61.4,
+      "frontY": 52,
+      "backY": 52,
       "backW": 36,
       "backH": 35,
-      "sideX": -3.8,
-      "sideY": 75.3,
+      "sideX": -2.6,
+      "sideY": 70,
       "size": 42
     },
-    "targetYRatio": 0.221,
+    "targetYRatio": 0.173,
     "omSpokes": 8
   },
   {
@@ -347,15 +347,15 @@
       "mundaka-upanishad"
     ],
     "position": {
-      "frontY": -14.7,
-      "backY": -9.8,
+      "frontY": -28,
+      "backY": -28,
       "backW": 41,
       "backH": 29,
-      "sideX": 6.3,
-      "sideY": 10.9,
+      "sideX": 5.4,
+      "sideY": -20,
       "size": 46
     },
-    "targetYRatio": -0.049,
+    "targetYRatio": -0.093,
     "omSpokes": 8
   },
   {
@@ -467,15 +467,15 @@
       "prasna-upanishad"
     ],
     "position": {
-      "frontY": -67.5,
-      "backY": -74.9,
+      "frontY": -86,
+      "backY": -94,
       "backW": 38,
       "backH": 29,
-      "sideX": 1.3,
-      "sideY": -70,
-      "size": 46
+      "sideX": 0.7,
+      "sideY": -82,
+      "size": 40
     },
-    "targetYRatio": -0.225,
+    "targetYRatio": -0.287,
     "omSpokes": 8
   },
   {
@@ -487,7 +487,7 @@
     "deva": "आज्ञा",
     "iast": "Ājñā",
     "english": "Command · The Master Center",
-    "location": "Between the eyebrows; in the side view, at brain level (medulla / mid-brain)",
+    "location": "Between the eyebrows, at the brow centre; in the side view, behind it at brain level",
     "spinal": "Medulla — top of the spinal column",
     "element": {
       "name": "Mind",
@@ -535,15 +535,15 @@
       "sat-chakra-nirupana"
     ],
     "position": {
-      "frontY": -132.9,
-      "backY": -129.5,
+      "frontY": -156,
+      "backY": -145,
       "backW": 40,
       "backH": 14,
-      "sideX": -10,
-      "sideY": -130.6,
-      "size": 50
+      "sideX": -8,
+      "sideY": -150,
+      "size": 40
     },
-    "targetYRatio": -0.443,
+    "targetYRatio": -0.52,
     "omSpokes": 8,
     "omSpokesNote": "Only ~5 spokes are visible in the side reference (others hidden behind the brain); 8 assumed to match the other centres."
   },
@@ -592,15 +592,15 @@
       "hatha-yoga-pradipika"
     ],
     "position": {
-      "frontY": -171,
-      "backY": -170.4,
+      "frontY": -188,
+      "backY": -178,
       "backW": 41,
       "backH": 22,
-      "sideX": -19,
-      "sideY": -171,
-      "size": 54
+      "sideX": -12,
+      "sideY": -182,
+      "size": 46
     },
-    "targetYRatio": -0.57,
+    "targetYRatio": -0.627,
     "omSpokes": 0
   }
 ]

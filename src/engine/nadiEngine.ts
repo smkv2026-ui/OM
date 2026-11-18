@@ -95,7 +95,6 @@ export class NadiEngine {
   private nadis: Nadi[] = [];
   private theme!: EngineTheme;
   private body = new Path2D(`${FRONT_OUTLINE} ${FRONT_ARM_GAPS.join(' ')}`);
-  private outline = new Path2D(FRONT_OUTLINE);
   private details = (() => {
     const p = new Path2D();
     FRONT_DETAILS.forEach((d) => p.addPath(new Path2D(d)));
@@ -327,12 +326,8 @@ export class NadiEngine {
     ctx.fillStyle = g;
     ctx.fill(this.body, 'evenodd');
     ctx.globalAlpha = 1;
-    ctx.shadowColor = theme.bodyRim;
-    ctx.shadowBlur = 10 * s;
     ctx.strokeStyle = theme.bodyRim;
-    ctx.lineWidth = 1.2;
-    ctx.stroke(this.outline);
-    ctx.shadowBlur = 0;
+    ctx.lineWidth = 1;
     ctx.stroke(this.body);
     ctx.strokeStyle = theme.bodyDetail;
     ctx.lineWidth = 0.9;
@@ -367,7 +362,7 @@ export class NadiEngine {
     ctx.lineWidth = 2.4;
     ctx.beginPath();
     ctx.moveTo(0, 160);
-    ctx.lineTo(0, -160);
+    ctx.lineTo(0, -176);
     ctx.stroke();
     ctx.shadowBlur = 0;
     const glow = (y: number, col: string, r: number) => {
@@ -578,7 +573,7 @@ export class NadiEngine {
     ctx.lineWidth = 2 + a * 2;
     ctx.beginPath();
     ctx.moveTo(0, 160);
-    ctx.lineTo(0, -178);
+    ctx.lineTo(0, -190);
     ctx.stroke();
     ctx.shadowBlur = 0;
     ctx.globalAlpha = 0.5 + a * 0.5;

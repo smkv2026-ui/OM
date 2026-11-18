@@ -26,8 +26,8 @@ const mk = (id: string, name: string, color: string, targetYRatio: number, short
 });
 
 /**
- * Ported from the prototype's SENSOR_SETS. Ids, names and targetYRatio values are unchanged.
- * 7-sensor colours now come from chakras.json (the exact chakra colours).
+ * Ported from the prototype's SENSOR_SETS (1- and 3-sensor sets unchanged). The 7-sensor set reads
+ * colours and targetYRatio from chakras.json, now aligned to the anatomical centres (Ajna at the brow).
  */
 export const SENSOR_SETS: Record<SensorCount, SensorConf[]> = {
   1: [mk('sensor-1', 'Sensor', '#ffb703', 0.0, 'Sensor', '#b07d1e')],

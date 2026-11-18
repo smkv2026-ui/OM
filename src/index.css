@@ -41,11 +41,12 @@
   --emerald: #05dda1;
   --shadow: 0 14px 44px rgba(0, 0, 0, 0.5);
   --glass-blur: 18px;
-  --body-top: #2d2a6e;
-  --body-bottom: #151238;
-  --body-rim: rgba(165, 180, 255, 0.5);
-  --body-detail: rgba(205, 210, 255, 0.38);
-  --body-shade: rgba(0, 0, 0, 0.35);
+  /* soft translucent grey silhouette (after the prototype figure) */
+  --body-top: rgba(200, 202, 214, 0.2);
+  --body-bottom: rgba(200, 202, 214, 0.16);
+  --body-rim: rgba(225, 227, 240, 0.32);
+  --body-detail: rgba(232, 234, 245, 0.55);
+  --body-shade: rgba(0, 0, 0, 0);
   --sushumna: #f5c451;
   --sushumna-core: #fff6dc;
   --aura-a: rgba(79, 227, 255, 0.16);
@@ -76,11 +77,11 @@
   --emerald: #0f8f6c;
   --shadow: 0 14px 40px rgba(120, 90, 40, 0.16);
   --glass-blur: 16px;
-  --body-top: #f5ead6;
-  --body-bottom: #e2cfab;
-  --body-rim: rgba(150, 108, 40, 0.6);
-  --body-detail: rgba(110, 80, 40, 0.5);
-  --body-shade: rgba(120, 85, 30, 0.12);
+  --body-top: rgba(150, 150, 156, 0.34);
+  --body-bottom: rgba(150, 150, 156, 0.3);
+  --body-rim: rgba(110, 110, 118, 0.35);
+  --body-detail: rgba(55, 55, 62, 0.62);
+  --body-shade: rgba(0, 0, 0, 0);
   --sushumna: #c8920f;
   --sushumna-core: #fff3c4;
   --aura-a: rgba(212, 160, 50, 0.2);

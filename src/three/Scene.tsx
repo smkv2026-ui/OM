@@ -36,13 +36,9 @@ const spineZAt = (y: number) => {
   }
   return -P[P.length - 1][0];
 };
-/**
- * Chakra position: height from Fig. 4.4 (backY — front and back presets project along the same
- * axis, and it matches the front calibration within ±7 units); depth on the spinal curve of Fig. 5.1.
- * Ajna and Sahasrara sit in the head, off the spine, at their side-view depth.
- */
+/** Chakra position: anatomical height from the front figure; depth on the spinal curve (Fig. 5.1). Ajna and Sahasrara sit in the head. */
 const chakraPos = (c: Chakra) =>
-  v3(0, c.position.backY, c.id === 'ajna' || c.id === 'sahasrara' ? -c.position.sideX : spineZAt(c.position.backY));
+  v3(0, c.position.frontY, c.id === 'ajna' || c.id === 'sahasrara' ? -c.position.sideX : spineZAt(c.position.frontY));
 
 /* ------------------------------------------------------------------ materials */
 
@@ -266,7 +262,7 @@ function Sushumna({ dark }: { dark: boolean }) {
 /** Ida / Pingala: spiral around the spine, crossing at each chakra, meeting at Ajna. */
 function Braid({ side, color }: { side: -1 | 1; color: string }) {
   const geo = useMemo(() => {
-    const ys = CHAKRAS.filter((c) => c.id !== 'sahasrara').map((c) => c.position.backY);
+    const ys = CHAKRAS.filter((c) => c.id !== 'sahasrara').map((c) => c.position.frontY);
     const pts: THREE.Vector3[] = [];
     for (let s = 0; s < ys.length - 1; s++) {
       const y0 = ys[s];

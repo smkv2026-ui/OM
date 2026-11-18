@@ -111,8 +111,8 @@ export const SIDE_SPINE_POINTS: [number, number][] = [
  * Back view, redrawn from Fig. 4.4 (reference/body-views/back.png — the seated figure seen from
  * behind: back of the head with ears, lotuses on the spine, arms bent with hands in the lap).
  * The scan was de-skewed (its spine drifts ~26 px) and mapped into the shared frame with one
- * linear fit, y = 0.303·px − 232.5, which lands every lotus within ±7 units of the calibrated
- * targetYRatio heights. Left and right halves were averaged for a clean symmetric redraw.
+ * linear fit, y = 0.303·px − 232.5, the lotus heights were then set to the
+ * anatomical levels (brow, throat, heart, navel, sacrum, perineum) of this head and torso. Left and right halves were averaged for a clean symmetric redraw.
  * Points are the right half (x ≥ 0); the left half is mirrored.
  */
 type P2 = [number, number];
@@ -222,7 +222,7 @@ export function braidPoints(side: -1 | 1, samplesPerSeg = 18, ampScale = 1, phas
 
 export const IDA_PATH = smoothPath(braidPoints(-1));
 export const PINGALA_PATH = smoothPath(braidPoints(1));
-export const SUSHUMNA_FRONT = { x: 0, y1: 160, y2: -178 };
+export const SUSHUMNA_FRONT = { x: 0, y1: 158, y2: -190 };
 export const SIDE_SPINE_PATH = smoothPath(SIDE_SPINE_POINTS);
 
 /** Evenly sample a polyline, giving point + unit tangent (for vertebra placement). */

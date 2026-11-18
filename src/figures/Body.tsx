@@ -37,7 +37,7 @@ export function Body({ view, look = 'premium' }: { view: FigureView; look?: Body
   const premium = look === 'premium';
   const fill = premium ? `url(#${id('skin')})` : 'none';
   const rim = premium ? 'var(--body-rim)' : 'var(--text)';
-  const rimW = premium ? 1.1 : 1.5;
+  const rimW = premium ? 0.9 : 1.5;
   const detail = premium ? 'var(--body-detail)' : 'var(--text)';
   const outline = view === 'back' ? BACK_OUTLINE : FRONT_OUTLINE;
   const holes = view === 'back' ? BACK_GAPS : FRONT_ARM_GAPS;
@@ -59,15 +59,11 @@ export function Body({ view, look = 'premium' }: { view: FigureView; look?: Body
 
       {view === 'side' ? (
         <>
-          {premium && <path d={SIDE_OUTLINE} fill="none" stroke="var(--body-rim)" strokeWidth={5} opacity={0.35} filter={`url(#${id('rim')})`} />}
           <path d={SIDE_OUTLINE} fill={fill} stroke={rim} strokeWidth={rimW} strokeLinejoin="round" />
           {premium && <path d={SIDE_OUTLINE} fill={`url(#${id('shade')})`} />}
         </>
       ) : (
         <>
-          {premium && (
-            <path d={outline} fill="none" stroke="var(--body-rim)" strokeWidth={5} opacity={0.35} filter={`url(#${id('rim')})`} />
-          )}
           <path d={`${outline} ${holes.join(' ')}`} fillRule="evenodd" fill={fill} stroke={rim} strokeWidth={rimW} strokeLinejoin="round" />
           {premium && <path d={`${outline} ${holes.join(' ')}`} fillRule="evenodd" fill={`url(#${id('shade')})`} />}
         </>
@@ -77,7 +73,11 @@ export function Body({ view, look = 'premium' }: { view: FigureView; look?: Body
         {(view === 'front' ? FRONT_DETAILS : view === 'back' ? BACK_DETAILS : SIDE_DETAILS).map((d) => (
           <path key={d} d={d} />
         ))}
-        {view === 'front' && FRONT_LOOPS.map((l, i) => <ellipse key={i} cx={l.cx} cy={l.cy} rx={l.rx} ry={l.ry} />)}
+        {view === 'front' &&
+          FRONT_LOOPS.map((l, i) => (
+            // the first two loops are the earrings (warm peach, as in the reference figure)
+            <ellipse key={i} cx={l.cx} cy={l.cy} rx={l.rx} ry={l.ry} stroke={i < 2 ? '#d9a48c' : undefined} strokeWidth={i < 2 ? 1.3 : undefined} />
+          ))}
       </g>
 
       {view === 'side' && <SideInterior premium={premium} />}
@@ -150,7 +150,7 @@ export function Sushumna({ view, opacity = 1, width = 2.2 }: { view: FigureView;
   const id = useIds();
   const d =
     view === 'side'
-      ? `${SIDE_SPINE_PATH} M-10 -131 L-19 -171`
+      ? `${SIDE_SPINE_PATH} M-10 -131 L-8 -150 L-12 -184`
       : `M0 ${SUSHUMNA_FRONT.y1} L0 ${SUSHUMNA_FRONT.y2}`;
   return (
     <g opacity={opacity}>
