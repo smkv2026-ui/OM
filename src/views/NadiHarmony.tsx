@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { ChevronLeft, PlayIcon, ResetIcon, StopIcon } from '../components/Icons';
 import { SensorAudioList } from '../components/SensorAudio';
 import { DevicePanel } from '../components/DevicePanel';
+import { LayerChips, type AnatomyLayers } from '../components/LayerMenu';
 import { deviceHooks, emergencyStop, retune, useDevice, useDeviceSettings } from '../engine/device';
 import { Dock } from '../components/Sheet';
 import { TopBar } from '../components/Shell';
@@ -39,7 +40,7 @@ export default function NadiHarmony() {
   const [rounds, setRounds] = useState(1);
   const [playing, setPlaying] = useState(false);
   const [dockOpen, setDockOpen] = useState(() => matchMedia('(min-width: 1024px)').matches);
-  const [braid, setBraid] = useState(true);
+  const [layers, setLayers] = useState<AnatomyLayers>({ chakras: true, sushumna: true, ida: true, pingala: true, spine: false });
   const [ghost, setGhost] = useState<{ conf: SensorConf; x: number; y: number } | null>(null);
   const [hint, setHint] = useState<string | null>(null);
   const seq = useRef(new Sequencer());
@@ -84,8 +85,8 @@ export default function NadiHarmony() {
     if (engine.current) engine.current.reduce = reduce;
   }, [reduce]);
   useEffect(() => {
-    if (engine.current) engine.current.showBraid = braid;
-  }, [braid]);
+    if (engine.current) engine.current.layers = { ...layers };
+  }, [layers]);
   useEffect(() => {
     engine.current?.setInsets(desktop ? { bottom: 0 } : { bottom: 136, top: 4 });
   }, [desktop]);
@@ -389,10 +390,8 @@ export default function NadiHarmony() {
       <Section title="Sensor device">
         <DevicePanel onFreq={onDeviceFreq} />
       </Section>
-      <Section title="Channels">
-        <div className="glass rounded-xl px-3">
-          <Toggle id="braid" label="Show Ida & Pingala" checked={braid} onChange={setBraid} />
-        </div>
+      <Section title="Layers">
+        <LayerChips value={layers} onChange={setLayers} />
       </Section>
       <Button className="w-full" onClick={reset}>
         <ResetIcon size={16} /> Reset Energy State
@@ -434,7 +433,7 @@ export default function NadiHarmony() {
           )}
 
           <div className="pointer-events-none absolute top-2 left-3 flex flex-col gap-1.5 lg:left-4">
-            {NADIS.map((nd) => (
+            {NADIS.filter((nd) => layers[nd.id]).map((nd) => (
               <button
                 key={nd.id}
                 className="glass pointer-events-auto flex min-h-9 items-center gap-2 rounded-full px-3 text-xs"

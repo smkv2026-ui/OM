@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { lazy, Suspense, useState } from 'react';
 import { Segmented } from '../components/ui';
+import { LayerMenu, type AnatomyLayers } from '../components/LayerMenu';
 import { TopBar } from '../components/Shell';
 import { ChevronRight, WavesIcon } from '../components/Icons';
 import { CHAKRAS, type ChakraId } from '../data';
@@ -25,7 +26,7 @@ export default function Home() {
   const setMatrika = useSettings((s) => s.setMatrika);
   const desktop = useIsDesktop();
   const [labels, setLabels] = useState(() => matchMedia('(min-width: 1024px)').matches);
-  const [nadis, setNadis] = useState(false);
+  const [layers, setLayers] = useState<AnatomyLayers>({ chakras: true, sushumna: true, ida: false, pingala: false, spine: true });
   const sheet = useUi((s) => s.sheet);
   const selected = sheet?.type === 'chakra' ? sheet.id : null;
 
@@ -39,18 +40,17 @@ export default function Home() {
         <div className="w-full max-w-[300px]">
           <Segmented label="Figure view" value={view} options={VIEWS} onChange={setView} size="sm" />
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap justify-center gap-2">
           <button className="btn !min-h-9 text-xs" aria-pressed={matrika} onClick={() => setMatrika(!matrika)}>
             Matrika
           </button>
           {!matrika && (
             <>
-              <button className="btn !min-h-9 text-xs" aria-pressed={nadis} onClick={() => setNadis(!nadis)} title="Show Ida and Pingala">
-                Nadis
-              </button>
+
               <button className="btn !min-h-9 text-xs" aria-pressed={labels} onClick={() => setLabels(!labels)}>
                 Labels
               </button>
+              <LayerMenu value={layers} onChange={setLayers} />
             </>
           )}
         </div>
@@ -62,7 +62,7 @@ export default function Home() {
             <Matrika />
           </Suspense>
         ) : (
-          <FigureStage view={view} labels={labels} nadis={nadis} selected={selected} wide={desktop} />
+          <FigureStage view={view} labels={labels} layers={layers} selected={selected} wide={desktop} />
         )}
       </div>
 
@@ -83,13 +83,13 @@ export default function Home() {
 function FigureStage({
   view,
   labels,
-  nadis,
+  layers,
   selected,
   wide,
 }: {
   view: FigureView;
   labels: boolean;
-  nadis: boolean;
+  layers: AnatomyLayers;
   selected: ChakraId | null;
   wide: boolean;
 }) {
@@ -112,13 +112,15 @@ function FigureStage({
         >
           <svg viewBox={vb} className="h-full w-full" role="group" aria-label={`Meditation figure, ${view} view, with seven chakras`}>
             <Aura />
-            <Body view={view} />
-            {nadis && view !== 'side' && <IdaPingala onPick={openNadi} />}
-            <g role="button" tabIndex={-1} onClick={() => openNadi('sushumna')} style={{ cursor: 'pointer' }} aria-label="Sushumna">
-              <Sushumna view={view} />
-            </g>
-            <ChakraGlyphs view={view} onSelect={openChakra} selected={selected} />
-            {showLabels && <Labels view={view} wide={wide} />}
+            <Body view={view} spine={layers.spine} />
+            {view !== 'side' && (layers.ida || layers.pingala) && <IdaPingala onPick={openNadi} ida={layers.ida} pingala={layers.pingala} />}
+            {layers.sushumna && (
+              <g role="button" tabIndex={-1} onClick={() => openNadi('sushumna')} style={{ cursor: 'pointer' }} aria-label="Sushumna">
+                <Sushumna view={view} />
+              </g>
+            )}
+            {layers.chakras && <ChakraGlyphs view={view} onSelect={openChakra} selected={selected} />}
+            {showLabels && layers.chakras && <Labels view={view} wide={wide} />}
           </svg>
         </motion.div>
       </AnimatePresence>

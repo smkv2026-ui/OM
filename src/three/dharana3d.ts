@@ -275,3 +275,4 @@ export function stopListening() {
   ui().set({ listening: false });
 }
 if (import.meta.env?.DEV) (window as unknown as { __dharana: typeof dharanaFrame }).__dharana = dharanaFrame;
+if (import.meta.env?.DEV) (window as unknown as { __dharanaApi: object }).__dharanaApi = { activateChakra };

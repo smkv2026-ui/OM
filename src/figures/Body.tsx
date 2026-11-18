@@ -32,7 +32,7 @@ const useIds = () => {
 };
 
 /** The seated body for a given view. Draw inside an <svg> using the shared frame. */
-export function Body({ view, look = 'premium' }: { view: FigureView; look?: BodyStyle }) {
+export function Body({ view, look = 'premium', spine = true }: { view: FigureView; look?: BodyStyle; spine?: boolean }) {
   const id = useIds();
   const premium = look === 'premium';
   const fill = premium ? `url(#${id('skin')})` : 'none';
@@ -80,13 +80,13 @@ export function Body({ view, look = 'premium' }: { view: FigureView; look?: Body
         </g>
       )}
 
-      {view === 'side' && <SideInterior premium={premium} />}
-      {view === 'back' && <BackSpine />}
+      {view === 'side' && <SideInterior premium={premium} spine={spine} />}
+      {view !== 'side' && spine && <BackSpine faint={view === 'front'} />}
     </g>
   );
 }
 
-function SideInterior({ premium }: { premium: boolean }) {
+function SideInterior({ premium, spine }: { premium: boolean; spine: boolean }) {
   return (
     <g>
       {/* brain */}
@@ -98,7 +98,7 @@ function SideInterior({ premium }: { premium: boolean }) {
         ))}
       </g>
       {/* spinal column */}
-      <Vertebrae />
+      {spine && <Vertebrae />}
       {/* near arm, translucent so the spine stays visible */}
       <path
         d={SIDE_ARM}
@@ -131,9 +131,9 @@ function Vertebrae() {
 
 /** Back-view spinal column (Fig. 4.4): neck base to coccyx on x = 0, 26 vertebral bodies. */
 const BACK_SPINE = { top: -86, bottom: 152 };
-function BackSpine() {
+function BackSpine({ faint = false }: { faint?: boolean }) {
   return (
-    <g>
+    <g opacity={faint ? 0.55 : 1}>
       <line x1={0} y1={BACK_SPINE.top} x2={0} y2={BACK_SPINE.bottom + 6} stroke="var(--body-detail)" strokeWidth={8} strokeLinecap="round" opacity={0.18} />
       {VERTEBRAE.map((v, i) => (
         <g key={i} transform={`translate(0 ${BACK_SPINE.top + ((BACK_SPINE.bottom - BACK_SPINE.top) * i) / (VERTEBRAE.length - 1)})`}>
@@ -166,7 +166,19 @@ export function Sushumna({ view, opacity = 1, width = 2.2 }: { view: FigureView;
   );
 }
 
-export function IdaPingala({ opacity = 0.9, width = 1.4, onPick }: { opacity?: number; width?: number; onPick?: (id: 'ida' | 'pingala') => void }) {
+export function IdaPingala({
+  opacity = 0.9,
+  width = 1.4,
+  onPick,
+  ida = true,
+  pingala = true,
+}: {
+  opacity?: number;
+  width?: number;
+  onPick?: (id: 'ida' | 'pingala') => void;
+  ida?: boolean;
+  pingala?: boolean;
+}) {
   const hit = (k: 'ida' | 'pingala') =>
     onPick
       ? {
@@ -180,14 +192,18 @@ export function IdaPingala({ opacity = 0.9, width = 1.4, onPick }: { opacity?: n
       : {};
   return (
     <g opacity={opacity} fill="none" strokeLinecap="round">
+      {ida && (
       <g {...hit('ida')}>
         <path d={IDA_PATH} stroke="transparent" strokeWidth={10} />
         <path d={IDA_PATH} stroke="var(--ida, #7fb8ff)" strokeWidth={width} />
       </g>
+      )}
+      {pingala && (
       <g {...hit('pingala')}>
         <path d={PINGALA_PATH} stroke="transparent" strokeWidth={10} />
         <path d={PINGALA_PATH} stroke="var(--pingala, #ff9a4a)" strokeWidth={width} />
       </g>
+      )}
     </g>
   );
 }

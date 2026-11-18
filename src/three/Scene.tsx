@@ -6,6 +6,7 @@ import { OrbitControls } from '@react-three/drei';
 import { useFrame, useThree, type ThreeEvent } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
+import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import { CHAKRAS, NADIS, PRANAS, type Chakra, type ChakraId, type PranaId } from '../data';
 import { SIDE_SPINE_POINTS } from '../figures/geometry';
@@ -16,7 +17,9 @@ export type Preset = 'front' | 'back' | 'side' | 'full';
 export interface Layers {
   body: boolean;
   chakras: boolean;
-  nadis: boolean;
+  sushumna: boolean;
+  ida: boolean;
+  pingala: boolean;
   spine: boolean;
   om: boolean;
   prana: boolean;
@@ -289,6 +292,9 @@ function Braid({ side, color }: { side: -1 | 1; color: string }) {
 
 /* ------------------------------------------------------------------ chakras */
 
+/** Preview: lotuses that bloom upward when switched on (enable with ?bloom in the URL). */
+const BLOOM = typeof location !== 'undefined' && /[?&]bloom\b/.test(location.search + location.hash);
+
 function ChakraNode({ c, dark, onSelect, om }: { c: Chakra; dark: boolean; onSelect: (id: ChakraId) => void; om: boolean }) {
   const group = useRef<THREE.Group>(null);
   const petals = useRef<THREE.InstancedMesh>(null);
@@ -296,6 +302,9 @@ function ChakraNode({ c, dark, onSelect, om }: { c: Chakra; dark: boolean; onSel
   const petalMat = useRef<THREE.MeshBasicMaterial>(null);
   const coreMat = useRef<THREE.MeshBasicMaterial>(null);
   const level = useRef(1);
+  const spin = useRef(0);
+  const bloomMesh = useRef<THREE.InstancedMesh>(null);
+  const bloomObj = useMemo(() => new THREE.Object3D(), []);
   const pos = useMemo(() => chakraPos(c), [c]);
   const rainbow = !!c.color.rainbow;
   const col = rainbow ? '#c9a7ff' : c.color.primary;
@@ -336,8 +345,32 @@ function ChakraNode({ c, dark, onSelect, om }: { c: Chakra; dark: boolean; onSel
     const k = (1 + 0.06 * Math.sin(clock.elapsedTime * (D.sounding === c.id ? 6 : 1.1) + c.order)) * (0.55 + 0.45 * Math.min(1, L));
     g.scale.setScalar(k);
     if (glowMat.current) glowMat.current.opacity = (dark ? 0.85 : 0.6) * Math.min(1.3, L);
-    if (petalMat.current) petalMat.current.opacity = 0.2 + 0.65 * Math.min(1, L);
+    if (petalMat.current) petalMat.current.opacity = (BLOOM ? 0.45 : 0.2) + (BLOOM ? 0.45 : 0.65) * Math.min(1, L);
     if (coreMat.current) coreMat.current.opacity = 0.3 + 0.7 * Math.min(1, L);
+    // Bloom preview: petals hinge outward from a closed bud (off) to an upward-opening lotus (on)
+    const bm = bloomMesh.current;
+    if (bm) {
+      if (D.enabled && dir) spin.current -= dir * dt * (rainbow ? 0.9 : 1.2);
+      else if (!D.enabled) spin.current += dt * 0.15;
+      const open = Math.min(1, L);
+      const rows = rainbow ? 2 : 2;
+      const per = Math.ceil(bm.count / rows);
+      for (let k = 0; k < bm.count; k++) {
+        const row = Math.floor(k / per);
+        const a = ((k % per) / per) * Math.PI * 2 + spin.current + (row ? Math.PI / per : 0);
+        // closed bud ≈ 8°, open cup ≈ 50° (outer) / 30° (inner) from vertical
+        const tilt = 0.14 + open * (row ? 0.4 : 0.74);
+        const len = R * (row ? 1.0 : 1.35) * (0.8 + 0.2 * open);
+        bloomObj.position.set(0, 0, 0);
+        bloomObj.rotation.set(0, a, 0, 'YXZ');
+        bloomObj.rotateX(tilt);
+        bloomObj.translateY(len * 0.5);
+        bloomObj.scale.set(R * (rainbow ? 0.13 : 0.3), len * 0.5, R * 0.09);
+        bloomObj.updateMatrix();
+        bm.setMatrixAt(k, bloomObj.matrix);
+      }
+      bm.instanceMatrix.needsUpdate = true;
+    }
     const p = petals.current;
     if (!p) return;
     if (D.enabled) {
@@ -359,7 +392,10 @@ function ChakraNode({ c, dark, onSelect, om }: { c: Chakra; dark: boolean; onSel
           <sphereGeometry args={[R * 0.32, 20, 14]} />
           <meshBasicMaterial ref={coreMat} transparent color={c.id === 'muladhara' ? '#f2c230' : rainbow ? '#ffffff' : col} toneMapped={false} />
         </mesh>
-        <instancedMesh ref={petals} args={[undefined, undefined, n]} rotation={rainbow ? [-Math.PI * 0.42, 0, 0] : [0, 0, 0]}>
+        {BLOOM && c.id !== 'ajna' && (
+          <BloomPetals meshRef={bloomMesh} count={rainbow ? 40 : Math.max(8, Math.min(2 * c.petals.count, 24))} rainbow={rainbow} col={col} matRef={petalMat} />
+        )}
+        <instancedMesh ref={petals} visible={!BLOOM || c.id === 'ajna'} args={[undefined, undefined, n]} rotation={rainbow ? [-Math.PI * 0.42, 0, 0] : [0, 0, 0]}>
           <sphereGeometry args={[1, 10, 8]} />
           <meshBasicMaterial ref={petalMat} transparent opacity={0.85} toneMapped={false} depthWrite={false} />
         </instancedMesh>
@@ -371,6 +407,34 @@ function ChakraNode({ c, dark, onSelect, om }: { c: Chakra; dark: boolean; onSel
       </mesh>
       {om && c.omSpokes > 0 && <OmSpokes c={c} dark={dark} />}
     </group>
+  );
+}
+
+function BloomPetals({
+  meshRef,
+  count,
+  rainbow,
+  col,
+  matRef,
+}: {
+  meshRef: React.RefObject<THREE.InstancedMesh | null>;
+  count: number;
+  rainbow: boolean;
+  col: string;
+  matRef: React.RefObject<THREE.MeshBasicMaterial | null>;
+}) {
+  useEffect(() => {
+    const m = meshRef.current;
+    if (!m) return;
+    const color = new THREE.Color();
+    for (let i = 0; i < count; i++) m.setColorAt(i, rainbow ? color.setHSL(i / count, 0.9, 0.62) : color.set(col).offsetHSL(0, 0, i % 2 ? 0.08 : 0));
+    if (m.instanceColor) m.instanceColor.needsUpdate = true;
+  }, [meshRef, count, rainbow, col]);
+  return (
+    <instancedMesh ref={meshRef} args={[undefined, undefined, count]} position={[0, -0.02, 0]}>
+      <sphereGeometry args={[1, 12, 8]} />
+      <meshBasicMaterial ref={matRef} transparent opacity={0.85} toneMapped={false} depthWrite={false} side={THREE.DoubleSide} />
+    </instancedMesh>
   );
 }
 
@@ -482,11 +546,66 @@ function PranaFlows({ dark }: { dark: boolean }) {
   );
 }
 
-/** The Dharana diamond: glides along Sushumna between chakras (dharanaFrame.t → target). */
+/** Brilliant-cut profile (radius, height), girdle radius 1: table, two crown tiers, girdle, pavilion, culet. */
+const BRILLIANT: [number, number][] = [
+  [0, 0.43],
+  [0.56, 0.43],
+  [0.79, 0.3],
+  [1.0, 0.09],
+  [1.0, 0.04],
+  [0.62, -0.3],
+  [0, -0.86],
+];
+
+let envTex: THREE.Texture | null = null;
+/** Neutral studio reflections generated in code (no download — works offline). */
+function useDiamondEnv() {
+  const { gl } = useThree();
+  return useMemo(() => {
+    if (!envTex) {
+      const pm = new THREE.PMREMGenerator(gl);
+      envTex = pm.fromScene(new RoomEnvironment(), 0.03).texture;
+      pm.dispose();
+    }
+    return envTex;
+  }, [gl]);
+}
+
+/** The Dharana diamond: a faceted brilliant gliding along Sushumna (dharanaFrame.t → target). */
 function Diamond({ dark }: { dark: boolean }) {
   const ref = useRef<THREE.Group>(null);
+  const gem = useRef<THREE.Group>(null);
+  const glints = useRef<(THREE.Sprite | null)[]>([]);
   const pts = useMemo(() => CHAKRAS.map((c) => chakraPos(c)), []);
-  useFrame((_, dt) => {
+  const env = useDiamondEnv();
+  // 16 lathe segments + flat shading = the crown, girdle and pavilion facets
+  const geo = useMemo(() => new THREE.LatheGeometry(BRILLIANT.map(([r, y]) => new THREE.Vector2(r, y)), 16).toNonIndexed(), []);
+  const mat = useMemo(
+    () =>
+      new THREE.MeshPhysicalMaterial({
+        color: '#f4f8ff',
+        metalness: 0.25,
+        roughness: 0.03,
+        ior: 2.42,
+        reflectivity: 1,
+        specularIntensity: 1,
+        specularColor: new THREE.Color('#ffffff'),
+        envMap: env,
+        envMapIntensity: 3.4,
+        clearcoat: 1,
+        clearcoatRoughness: 0,
+        // a little iridescence stands in for the diamond's colour "fire"
+        iridescence: 0.4,
+        iridescenceIOR: 1.8,
+        flatShading: true,
+        // in the transparent pass (at full opacity) so renderOrder draws it over the translucent chakra
+        transparent: true,
+        depthTest: false,
+      }),
+    [env],
+  );
+  const facetEdges = useMemo(() => new THREE.EdgesGeometry(geo, 10), [geo]);
+  useFrame(({ clock }, dt) => {
     const g = ref.current;
     const D = dharanaFrame;
     if (!g) return;
@@ -499,20 +618,63 @@ function Diamond({ dark }: { dark: boolean }) {
     const i = Math.max(0, Math.min(pts.length - 2, Math.floor(D.t)));
     const f = Math.max(0, Math.min(1, D.t - i));
     g.position.lerpVectors(pts[i], pts[i + 1], f);
-    g.position.z += 0.06; // just in front of the spine so it reads over the chakra cores
-    g.rotation.y += dt * 1.5;
+    g.position.z += 0.09; // in front of the spine so it reads over the chakra cores
+    if (gem.current) gem.current.rotation.y += dt * 0.9;
+    // twinkling glints, like light catching facets
+    const t = clock.elapsedTime;
+    glints.current.forEach((s, k) => {
+      if (!s) return;
+      const ph = (t * (0.9 + k * 0.37) + k * 0.31) % 1;
+      const on = Math.max(0, Math.sin(ph * Math.PI)) ** 6;
+      s.scale.setScalar(0.02 + on * 0.09);
+      (s.material as THREE.SpriteMaterial).opacity = on;
+    });
   });
   return (
     <group ref={ref} visible={false}>
-      <mesh scale={[0.055, 0.08, 0.055]}>
-        <octahedronGeometry args={[1, 0]} />
-        <meshStandardMaterial color="#ffffff" emissive={dark ? '#ffd36e' : '#c8920f'} emissiveIntensity={0.9} metalness={0.2} roughness={0.25} />
-      </mesh>
-      <sprite scale={[0.35, 0.35, 1]}>
-        <spriteMaterial map={glowTexture()} color="#ffb703" transparent opacity={0.8} depthWrite={false} blending={dark ? THREE.AdditiveBlending : THREE.NormalBlending} toneMapped={false} />
+      <sprite scale={[0.42, 0.42, 1]} position={[0, 0, -0.05]}>
+        <spriteMaterial map={glowTexture()} color={dark ? '#dff4ff' : '#ffffff'} transparent opacity={dark ? 0.3 : 0.2} depthWrite={false} blending={dark ? THREE.AdditiveBlending : THREE.NormalBlending} toneMapped={false} />
       </sprite>
+      <group ref={gem} rotation={[0.32, 0, 0]} scale={0.115}>
+        <mesh geometry={geo} material={mat} renderOrder={20} />
+        <lineSegments geometry={facetEdges} renderOrder={21}>
+          <lineBasicMaterial color={dark ? '#ffffff' : '#7f97ad'} transparent opacity={dark ? 0.45 : 0.6} depthTest={false} />
+        </lineSegments>
+      </group>
+      {[
+        [0.05, 0.04],
+        [-0.055, 0.015],
+        [0.015, -0.035],
+      ].map(([x, y], k) => (
+        <sprite key={k} ref={(s) => void (glints.current[k] = s)} position={[x, y, 0.08]} scale={0.02}>
+          <spriteMaterial map={sparkTexture()} transparent opacity={0} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
+        </sprite>
+      ))}
     </group>
   );
+}
+
+let sparkTex: THREE.Texture | null = null;
+/** Four-point star for facet glints. */
+function sparkTexture() {
+  if (sparkTex) return sparkTex;
+  const c = document.createElement('canvas');
+  c.width = c.height = 64;
+  const g = c.getContext('2d')!;
+  const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+  gr.addColorStop(0, 'rgba(255,255,255,1)');
+  gr.addColorStop(0.15, 'rgba(255,255,255,0.6)');
+  gr.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = gr;
+  g.beginPath();
+  g.moveTo(32, 0);
+  g.quadraticCurveTo(35, 29, 64, 32);
+  g.quadraticCurveTo(35, 35, 32, 64);
+  g.quadraticCurveTo(29, 35, 0, 32);
+  g.quadraticCurveTo(29, 29, 32, 0);
+  g.fill();
+  sparkTex = new THREE.CanvasTexture(c);
+  return sparkTex;
 }
 
 /* ------------------------------------------------------------------ camera rig */
@@ -592,14 +754,14 @@ export function Scene({ layers, dark, onSelect }: { layers: Layers; dark: boolea
       <ambientLight intensity={0.8} />
       <directionalLight position={[3, 4, 5]} intensity={1.2} />
       {layers.spine && <Spine dark={dark} />}
-      {layers.nadis && (
+      {layers.sushumna && (
         <>
           <Sushumna dark={dark} />
           <SushumnaFlow dark={dark} />
-          <Braid side={-1} color={dark ? ida.color : ida.colorLight} />
-          <Braid side={1} color={dark ? pingala.color : pingala.colorLight} />
         </>
       )}
+      {layers.ida && <Braid side={-1} color={dark ? ida.color : ida.colorLight} />}
+      {layers.pingala && <Braid side={1} color={dark ? pingala.color : pingala.colorLight} />}
       {layers.chakras && CHAKRAS.map((c) => <ChakraNode key={c.id} c={c} dark={dark} onSelect={onSelect} om={layers.om} />)}
       {!layers.chakras && layers.om && CHAKRAS.map((c) => (
         <group key={c.id} position={chakraPos(c)}>

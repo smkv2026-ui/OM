@@ -86,7 +86,8 @@ export class NadiEngine {
   alignment = 0;
   silhouette: Silhouette = 'default';
   reduce = false;
-  showBraid = true;
+  /** visible anatomy layers (Ida / Pingala / Sushumna / chakras / spine) */
+  layers = { chakras: true, sushumna: true, ida: true, pingala: true, spine: false };
   marker = { active: false, y: 0, target: 0 };
   /** Chakras currently vibrating on the sensor device: drawn as rings rippling at their frequency. */
   devicePulses: { ratio: number; color: string; freq: number; intensity: number }[] = [];
@@ -221,15 +222,16 @@ export class NadiEngine {
     const ux = (px - this.cx) / this.s;
     const uy = (py - this.cy) / this.s;
     if (uy < -180 || uy > 165) return null;
-    if (this.showBraid && uy > CROSSINGS[CROSSINGS.length - 1] && uy < CROSSINGS[0]) {
+    if ((this.layers.ida || this.layers.pingala) && uy > CROSSINGS[CROSSINGS.length - 1] && uy < CROSSINGS[0]) {
       for (const k of ['ida', 'pingala'] as const) {
+        if (!this.layers[k]) continue;
         const pts = this.braid[k];
         let best = pts[0];
         for (const p of pts) if (Math.abs(p[1] - uy) < Math.abs(best[1] - uy)) best = p;
         if (best && Math.abs(best[0] - ux) < 9 && Math.abs(best[0]) > 4) return k;
       }
     }
-    if (Math.abs(ux) < 8) return 'sushumna';
+    if (this.layers.sushumna && Math.abs(ux) < 8) return 'sushumna';
     return null;
   }
 
@@ -286,8 +288,8 @@ export class NadiEngine {
     }
     ctx.restore();
 
-    if (this.showBraid) this.drawBraid(a);
-    this.drawSushumna(a);
+    if (this.layers.ida || this.layers.pingala) this.drawBraid(a);
+    if (this.layers.sushumna) this.drawSushumna(a);
     this.drawUnifiedStream(a, freq);
     if (onDharana) this.drawSensorGlow(0.45);
     else {
@@ -332,10 +334,11 @@ export class NadiEngine {
     ctx.fillStyle = '#d9a48c';
     ctx.fill(this.earrings, 'evenodd');
 
-    if (this.silhouette === 'dharana') this.drawDharanaGlyphs(a);
+    if (this.layers.spine) this.drawSpine();
+    if (this.layers.chakras && this.silhouette === 'dharana') this.drawDharanaGlyphs(a);
 
     // The prototype's seven chakra dots (cyan once aligned > 0.8).
-    CHAKRAS.forEach((c) => {
+    if (this.layers.chakras) CHAKRAS.forEach((c) => {
       const y = c.targetYRatio * 300;
       ctx.beginPath();
       ctx.arc(0, y, this.silhouette === 'dharana' ? 1.8 : 4, 0, Math.PI * 2);
@@ -347,6 +350,22 @@ export class NadiEngine {
       ctx.fill();
       ctx.shadowBlur = 0;
     });
+    ctx.restore();
+  }
+
+  /** Vertebral column on the axis (figure units, inside the silhouette transform). */
+  private drawSpine() {
+    const { ctx, theme } = this;
+    ctx.save();
+    ctx.globalAlpha = 0.55;
+    ctx.fillStyle = theme.bodyDetail;
+    for (let i = 0; i < 26; i++) {
+      const y = -86 + (238 * i) / 25;
+      const w = i < 7 ? 6 : i < 19 ? 7.5 : i < 24 ? 9.5 : 8 - (i - 24) * 2;
+      ctx.beginPath();
+      ctx.roundRect(-w / 2, y - 2, w, 4, 1.8);
+      ctx.fill();
+    }
     ctx.restore();
   }
 
@@ -515,6 +534,7 @@ export class NadiEngine {
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     for (const k of ['ida', 'pingala'] as const) {
+      if (!this.layers[k]) continue;
       const nd = NADIS.find((n) => n.id === k)!;
       const col = theme.dark ? nd.color : nd.colorLight;
       const pts = this.braid[k];
@@ -538,7 +558,7 @@ export class NadiEngine {
     }
     ctx.globalAlpha = 1;
     // crossing points glow in the chakra colours; Ajna is the meeting point
-    CHAKRAS.filter((c) => c.id !== 'sahasrara').forEach((c) => {
+    if (this.layers.chakras) CHAKRAS.filter((c) => c.id !== 'sahasrara').forEach((c) => {
       const y = c.position.frontY;
       const meet = c.id === 'ajna';
       const r = (meet ? 12 : 8) + a * 6;
@@ -692,17 +712,71 @@ export class NadiEngine {
     const m = this.marker;
     if (!m.active) return;
     m.y += (m.target - m.y) * (1 - Math.pow(1 - 0.04, dt));
+    this.drawGem(this.cx, this.cy + m.y * this.unit, 9 * Math.max(0.85, this.s));
+  }
+
+  /** A brilliant-cut diamond seen from the side: table, crown facets, girdle, pavilion, sparkle. */
+  private drawGem(x: number, y: number, r: number) {
     const { ctx } = this;
+    const tableHalf = r * 0.56;
+    const top = y - r * 0.45;
+    const girdle = y;
+    const culet = y + r * 0.95;
     ctx.save();
-    ctx.translate(this.cx, this.cy + m.y * this.unit);
-    ctx.rotate(Math.PI / 4);
-    ctx.fillStyle = '#ffffff';
-    ctx.shadowColor = '#ffb703';
+    ctx.shadowColor = '#bfe9ff';
     ctx.shadowBlur = 16;
-    ctx.fillRect(-6, -6, 12, 12);
-    ctx.strokeStyle = this.theme.dark ? 'rgba(255, 255, 255, 0.6)' : 'rgba(176, 125, 30, 0.9)';
+    // body
+    const g = ctx.createLinearGradient(x - r, top, x + r, culet);
+    g.addColorStop(0, '#ffffff');
+    g.addColorStop(0.35, '#dbefff');
+    g.addColorStop(0.6, '#f7fbff');
+    g.addColorStop(1, '#a9c6dd');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.moveTo(x - tableHalf, top);
+    ctx.lineTo(x + tableHalf, top);
+    ctx.lineTo(x + r, girdle);
+    ctx.lineTo(x, culet);
+    ctx.lineTo(x - r, girdle);
+    ctx.closePath();
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    // facet lines
+    ctx.strokeStyle = 'rgba(120, 150, 180, 0.75)';
+    ctx.lineWidth = 0.7;
+    ctx.beginPath();
+    ctx.moveTo(x - r, girdle);
+    ctx.lineTo(x + r, girdle);
+    for (const k of [-1, -0.5, 0, 0.5, 1]) {
+      ctx.moveTo(x + k * r * 0.95, girdle);
+      ctx.lineTo(x + k * r * 0.25, culet - r * 0.25);
+      ctx.lineTo(x, culet);
+    }
+    for (const k of [-1, 1]) {
+      ctx.moveTo(x + k * tableHalf, top);
+      ctx.lineTo(x + k * r * 0.5, girdle);
+      ctx.lineTo(x + k * tableHalf * 0.2, top);
+    }
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,255,255,0.9)';
     ctx.lineWidth = 1;
-    ctx.strokeRect(-6, -6, 12, 12);
+    ctx.stroke();
+    ctx.restore();
+    // sparkle
+    const tw = 0.5 + 0.5 * Math.sin(this.time * 0.008);
+    ctx.save();
+    ctx.globalAlpha = 0.5 + 0.5 * tw;
+    ctx.fillStyle = '#ffffff';
+    const sx = x - r * 0.3;
+    const sy = top + r * 0.18;
+    const s = r * (0.35 + 0.35 * tw);
+    ctx.beginPath();
+    ctx.moveTo(sx, sy - s);
+    ctx.quadraticCurveTo(sx, sy, sx + s, sy);
+    ctx.quadraticCurveTo(sx, sy, sx, sy + s);
+    ctx.quadraticCurveTo(sx, sy, sx - s, sy);
+    ctx.quadraticCurveTo(sx, sy, sx, sy - s);
+    ctx.fill();
     ctx.restore();
   }
 }

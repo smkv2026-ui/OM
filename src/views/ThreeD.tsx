@@ -4,19 +4,17 @@ import { LayersIcon, MicIcon, PlayIcon, ResetIcon, StopIcon } from '../component
 import { CHANT, playDharana, startListening, stopDharana, stopListening, useDharana3D, voiceSupported, type DharanaMode } from '../three/dharana3d';
 import { CHAKRAS } from '../data';
 import { TopBar } from '../components/Shell';
-import { Chip, Segmented, Toggle } from '../components/ui';
+import { Segmented, Toggle } from '../components/ui';
+import { LayerChips } from '../components/LayerMenu';
 import { useIsDesktop, useReducedMotion } from '../lib/hooks';
 import { openChakra, useSettings } from '../lib/store';
 import { CameraRig, Scene, type Layers, type Preset } from '../three/Scene';
 
-const LAYER_LABEL: Record<keyof Layers, string> = {
-  body: 'Body',
-  chakras: 'Chakras',
-  nadis: 'Nadis',
-  spine: 'Spine',
-  om: 'Om glyphs',
-  prana: 'Prāṇa flows',
-};
+const EXTRA_LAYERS: { key: keyof Layers; label: string }[] = [
+  { key: 'body', label: 'Body' },
+  { key: 'om', label: 'Om glyphs' },
+  { key: 'prana', label: 'Prāṇa flows' },
+];
 
 export default function ThreeD() {
   const theme = useSettings((s) => s.theme);
@@ -24,7 +22,7 @@ export default function ThreeD() {
   const desktop = useIsDesktop();
   const [preset, setPreset] = useState<Preset>('full');
   const [nonce, setNonce] = useState(0);
-  const [layers, setLayers] = useState<Layers>({ body: true, chakras: true, nadis: true, spine: true, om: false, prana: false });
+  const [layers, setLayers] = useState<Layers>({ body: true, chakras: true, sushumna: true, ida: true, pingala: true, spine: true, om: false, prana: false });
   const [fontsReady, setFontsReady] = useState(false);
   const [showLayers, setShowLayers] = useState(() => matchMedia('(min-width: 1024px)').matches);
   const [showDharana, setShowDharana] = useState(false);
@@ -127,11 +125,7 @@ export default function ThreeD() {
         <div className="pointer-events-none absolute inset-x-0 bottom-3 flex flex-col items-center gap-2 px-3">
           {showLayers && (desktop || !showDharana) && (
             <div className="glass pointer-events-auto flex max-w-full flex-wrap justify-center gap-1.5 rounded-2xl p-2" role="group" aria-label="Layers">
-              {(Object.keys(LAYER_LABEL) as (keyof Layers)[]).map((k) => (
-                <Chip key={k} active={layers[k]} onClick={() => setLayers((l) => ({ ...l, [k]: !l[k] }))}>
-                  {LAYER_LABEL[k]}
-                </Chip>
-              ))}
+              <LayerChips value={layers} onChange={setLayers} extra={EXTRA_LAYERS} />
             </div>
           )}
           <div className="pointer-events-auto flex w-full max-w-[560px] items-center gap-2">

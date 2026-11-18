@@ -3,6 +3,7 @@ import { PlayIcon, StopIcon } from '../components/Icons';
 import { Dock } from '../components/Sheet';
 import { TopBar } from '../components/Shell';
 import { Chip, Section, Segmented, Slider, Toggle } from '../components/ui';
+import { LayerChips, type AnatomyLayers } from '../components/LayerMenu';
 import { PRANAS, type PranaId } from '../data';
 import { breathPhase, intensity, orbSize, PRANA_VIEWBOX, PranaFlow, VAYU_PATHS, ZONES, type Phase } from '../engine/pranaFlow';
 import { Body, ChakraGlyphs, IdaPingala, Sushumna, type BodyStyle } from '../figures/Body';
@@ -22,8 +23,7 @@ export default function Prana() {
   const [tempo, setTempo] = useState(6);
   const [orb, setOrb] = useState(true);
   const [look, setLook] = useState<BodyStyle>('premium');
-  const [nadis, setNadis] = useState(false);
-  const [chakras, setChakras] = useState(false);
+  const [layers, setLayers] = useState<AnatomyLayers>({ chakras: false, sushumna: false, ida: false, pingala: false, spine: false });
   const [dockOpen, setDockOpen] = useState(() => matchMedia('(min-width: 1024px)').matches);
   const [phase, setPhase] = useState<Phase | null>(null);
 
@@ -161,10 +161,7 @@ export default function Prana() {
         />
       </Section>
       <Section title="Layers">
-        <div className="glass rounded-xl px-3">
-          <Toggle id="l-nadis" label="Ida · Pingala · Sushumna" checked={nadis} onChange={setNadis} />
-          <Toggle id="l-chakras" label="Seven chakra glows" checked={chakras} onChange={setChakras} />
-        </div>
+        <LayerChips value={layers} onChange={setLayers} />
         <p className="text-xs text-faint">Udāna rises through Sushumna; Vyāna spreads through the nāḍīs from the heart. Apāna ↔ Mūlādhāra/Svādhiṣṭhāna · Samāna ↔ Maṇipūra · Prāṇa ↔ Anāhata · Udāna ↔ Viśuddha/Ājñā.</p>
       </Section>
     </div>
@@ -193,16 +190,14 @@ export default function Prana() {
                 </tspan>
               </text>
 
-              <Body view="front" look={look} />
-              {nadis && (
-                <>
-                  <IdaPingala onPick={openNadi} opacity={0.75} />
-                  <g onClick={() => openNadi('sushumna')} style={{ cursor: 'pointer' }}>
-                    <Sushumna view="front" width={1.8} opacity={0.85} />
-                  </g>
-                </>
+              <Body view="front" look={look} spine={layers.spine} />
+              {(layers.ida || layers.pingala) && <IdaPingala onPick={openNadi} opacity={0.75} ida={layers.ida} pingala={layers.pingala} />}
+              {layers.sushumna && (
+                <g onClick={() => openNadi('sushumna')} style={{ cursor: 'pointer' }}>
+                  <Sushumna view="front" width={1.8} opacity={0.85} />
+                </g>
               )}
-              {chakras && <ChakraGlyphs view="front" scale={0.7} breathing={!reduce} />}
+              {layers.chakras && <ChakraGlyphs view="front" scale={0.7} breathing={!reduce} />}
 
               {/* dotted zones */}
               {(
