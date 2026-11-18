@@ -44,6 +44,34 @@ const spineZAt = (y: number) => {
 const chakraPos = (c: Chakra) =>
   v3(0, c.position.frontY, c.id === 'ajna' || c.id === 'sahasrara' ? -c.position.sideX : spineZAt(c.position.frontY));
 
+/** Sushumna's centre line: the spinal curve from Muladhara up, continued through the head to the crown. */
+let sushumnaCurve: THREE.CatmullRomCurve3 | null = null;
+let sushumnaSamples: THREE.Vector3[] = [];
+function getSushumnaCurve() {
+  if (!sushumnaCurve) {
+    const crown = CHAKRAS.find((c) => c.id === 'sahasrara')!;
+    const pts = [...SIDE_SPINE_POINTS].reverse().map(([sx, y]) => v3(0, y, -sx));
+    pts.push(chakraPos(crown));
+    sushumnaCurve = new THREE.CatmullRomCurve3(pts);
+    sushumnaSamples = sushumnaCurve.getSpacedPoints(400);
+  }
+  return sushumnaCurve;
+}
+/** Point on the Sushumna centre line at world height y (so the diamond travels inside the channel). */
+function sushumnaAtY(y: number, out: THREE.Vector3) {
+  getSushumnaCurve();
+  const S2 = sushumnaSamples;
+  for (let i = 0; i < S2.length - 1; i++) {
+    const a = S2[i];
+    const b = S2[i + 1];
+    if ((y >= a.y && y <= b.y) || (y <= a.y && y >= b.y)) {
+      const f = b.y === a.y ? 0 : (y - a.y) / (b.y - a.y);
+      return out.lerpVectors(a, b, f);
+    }
+  }
+  return out.copy(y < S2[0].y ? S2[0] : S2[S2.length - 1]);
+}
+
 /* ------------------------------------------------------------------ materials */
 
 function useGlass(dark: boolean, opts: { base: string; rim: string; alpha?: number }) {
@@ -238,18 +266,8 @@ function Spine({ dark }: { dark: boolean }) {
 /* ------------------------------------------------------------------ nadis */
 
 function Sushumna({ dark }: { dark: boolean }) {
-  const geo = useMemo(() => {
-    const crown = CHAKRAS.find((c) => c.id === 'sahasrara')!;
-    const pts = [...SIDE_SPINE_POINTS].reverse().map(([sx, y]) => v3(0, y, -sx));
-    pts.push(chakraPos(crown));
-    return new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 120, 0.016, 8, false);
-  }, []);
-  const core = useMemo(() => {
-    const crown = CHAKRAS.find((c) => c.id === 'sahasrara')!;
-    const pts = [...SIDE_SPINE_POINTS].reverse().map(([sx, y]) => v3(0, y, -sx));
-    pts.push(chakraPos(crown));
-    return new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 120, 0.035, 8, false);
-  }, []);
+  const geo = useMemo(() => new THREE.TubeGeometry(getSushumnaCurve(), 120, 0.016, 8, false), []);
+  const core = useMemo(() => new THREE.TubeGeometry(getSushumnaCurve(), 120, 0.035, 8, false), []);
   const col = dark ? '#f5c451' : '#c8920f';
   return (
     <group>
@@ -292,10 +310,8 @@ function Braid({ side, color }: { side: -1 | 1; color: string }) {
 
 /* ------------------------------------------------------------------ chakras */
 
-/** Preview: lotuses that bloom upward when switched on (enable with ?bloom in the URL). */
-const BLOOM = typeof location !== 'undefined' && /[?&]bloom\b/.test(location.search + location.hash);
 
-function ChakraNode({ c, dark, onSelect, om }: { c: Chakra; dark: boolean; onSelect: (id: ChakraId) => void; om: boolean }) {
+function ChakraNode({ c, dark, onSelect, om, bloom }: { c: Chakra; dark: boolean; onSelect: (id: ChakraId) => void; om: boolean; bloom: boolean }) {
   const group = useRef<THREE.Group>(null);
   const petals = useRef<THREE.InstancedMesh>(null);
   const glowMat = useRef<THREE.SpriteMaterial>(null);
@@ -345,7 +361,7 @@ function ChakraNode({ c, dark, onSelect, om }: { c: Chakra; dark: boolean; onSel
     const k = (1 + 0.06 * Math.sin(clock.elapsedTime * (D.sounding === c.id ? 6 : 1.1) + c.order)) * (0.55 + 0.45 * Math.min(1, L));
     g.scale.setScalar(k);
     if (glowMat.current) glowMat.current.opacity = (dark ? 0.85 : 0.6) * Math.min(1.3, L);
-    if (petalMat.current) petalMat.current.opacity = (BLOOM ? 0.45 : 0.2) + (BLOOM ? 0.45 : 0.65) * Math.min(1, L);
+    if (petalMat.current) petalMat.current.opacity = (bloom ? 0.45 : 0.2) + (bloom ? 0.45 : 0.65) * Math.min(1, L);
     if (coreMat.current) coreMat.current.opacity = 0.3 + 0.7 * Math.min(1, L);
     // Bloom preview: petals hinge outward from a closed bud (off) to an upward-opening lotus (on)
     const bm = bloomMesh.current;
@@ -392,10 +408,10 @@ function ChakraNode({ c, dark, onSelect, om }: { c: Chakra; dark: boolean; onSel
           <sphereGeometry args={[R * 0.32, 20, 14]} />
           <meshBasicMaterial ref={coreMat} transparent color={c.id === 'muladhara' ? '#f2c230' : rainbow ? '#ffffff' : col} toneMapped={false} />
         </mesh>
-        {BLOOM && c.id !== 'ajna' && (
+        {bloom && c.id !== 'ajna' && (
           <BloomPetals meshRef={bloomMesh} count={rainbow ? 40 : Math.max(8, Math.min(2 * c.petals.count, 24))} rainbow={rainbow} col={col} matRef={petalMat} />
         )}
-        <instancedMesh ref={petals} visible={!BLOOM || c.id === 'ajna'} args={[undefined, undefined, n]} rotation={rainbow ? [-Math.PI * 0.42, 0, 0] : [0, 0, 0]}>
+        <instancedMesh ref={petals} visible={!bloom || c.id === 'ajna'} args={[undefined, undefined, n]} rotation={rainbow ? [-Math.PI * 0.42, 0, 0] : [0, 0, 0]}>
           <sphereGeometry args={[1, 10, 8]} />
           <meshBasicMaterial ref={petalMat} transparent opacity={0.85} toneMapped={false} depthWrite={false} />
         </instancedMesh>
@@ -617,8 +633,8 @@ function Diamond({ dark }: { dark: boolean }) {
     D.t += step;
     const i = Math.max(0, Math.min(pts.length - 2, Math.floor(D.t)));
     const f = Math.max(0, Math.min(1, D.t - i));
-    g.position.lerpVectors(pts[i], pts[i + 1], f);
-    g.position.z += 0.09; // in front of the spine so it reads over the chakra cores
+    // travel inside Sushumna: follow its centre line at the interpolated chakra height
+    sushumnaAtY(pts[i].y + (pts[i + 1].y - pts[i].y) * f, g.position);
     if (gem.current) gem.current.rotation.y += dt * 0.9;
     // twinkling glints, like light catching facets
     const t = clock.elapsedTime;
@@ -635,7 +651,7 @@ function Diamond({ dark }: { dark: boolean }) {
       <sprite scale={[0.42, 0.42, 1]} position={[0, 0, -0.05]}>
         <spriteMaterial map={glowTexture()} color={dark ? '#dff4ff' : '#ffffff'} transparent opacity={dark ? 0.3 : 0.2} depthWrite={false} blending={dark ? THREE.AdditiveBlending : THREE.NormalBlending} toneMapped={false} />
       </sprite>
-      <group ref={gem} rotation={[0.32, 0, 0]} scale={0.115}>
+      <group ref={gem} rotation={[0.32, 0, 0]} scale={0.09}>
         <mesh geometry={geo} material={mat} renderOrder={20} />
         <lineSegments geometry={facetEdges} renderOrder={21}>
           <lineBasicMaterial color={dark ? '#ffffff' : '#7f97ad'} transparent opacity={dark ? 0.45 : 0.6} depthTest={false} />
@@ -746,7 +762,9 @@ export function CameraRig({ preset, nonce, reduce }: { preset: Preset; nonce: nu
 
 /* ------------------------------------------------------------------ scene */
 
-export function Scene({ layers, dark, onSelect }: { layers: Layers; dark: boolean; onSelect: (id: ChakraId) => void }) {
+export type LotusStyle = 'flat' | 'bloom';
+
+export function Scene({ layers, dark, onSelect, lotus = 'flat' }: { layers: Layers; dark: boolean; onSelect: (id: ChakraId) => void; lotus?: LotusStyle }) {
   const ida = NADIS.find((n) => n.id === 'ida')!;
   const pingala = NADIS.find((n) => n.id === 'pingala')!;
   return (
@@ -762,7 +780,7 @@ export function Scene({ layers, dark, onSelect }: { layers: Layers; dark: boolea
       )}
       {layers.ida && <Braid side={-1} color={dark ? ida.color : ida.colorLight} />}
       {layers.pingala && <Braid side={1} color={dark ? pingala.color : pingala.colorLight} />}
-      {layers.chakras && CHAKRAS.map((c) => <ChakraNode key={c.id} c={c} dark={dark} onSelect={onSelect} om={layers.om} />)}
+      {layers.chakras && CHAKRAS.map((c) => <ChakraNode key={c.id} c={c} dark={dark} onSelect={onSelect} om={layers.om} bloom={lotus === 'bloom'} />)}
       {!layers.chakras && layers.om && CHAKRAS.map((c) => (
         <group key={c.id} position={chakraPos(c)}>
           <OmSpokes c={c} dark={dark} />

@@ -8,7 +8,7 @@ import { Segmented, Toggle } from '../components/ui';
 import { LayerChips } from '../components/LayerMenu';
 import { useIsDesktop, useReducedMotion } from '../lib/hooks';
 import { openChakra, useSettings } from '../lib/store';
-import { CameraRig, Scene, type Layers, type Preset } from '../three/Scene';
+import { CameraRig, Scene, type Layers, type LotusStyle, type Preset } from '../three/Scene';
 
 const EXTRA_LAYERS: { key: keyof Layers; label: string }[] = [
   { key: 'body', label: 'Body' },
@@ -26,6 +26,21 @@ export default function ThreeD() {
   const [fontsReady, setFontsReady] = useState(false);
   const [showLayers, setShowLayers] = useState(() => matchMedia('(min-width: 1024px)').matches);
   const [showDharana, setShowDharana] = useState(false);
+  const [lotus, setLotusState] = useState<LotusStyle>(() => {
+    try {
+      return localStorage.getItem('om-lotus') === 'bloom' ? 'bloom' : 'flat';
+    } catch {
+      return 'flat';
+    }
+  });
+  const setLotus = (v: LotusStyle) => {
+    setLotusState(v);
+    try {
+      localStorage.setItem('om-lotus', v);
+    } catch {
+      /* storage unavailable */
+    }
+  };
   const dh = useDharana3D();
   useEffect(
     () => () => {
@@ -58,7 +73,7 @@ export default function ThreeD() {
               style={{ touchAction: 'none' }}
             >
               <Suspense fallback={null}>
-                <Scene layers={layers} dark={dark} onSelect={openChakra} />
+                <Scene layers={layers} dark={dark} onSelect={openChakra} lotus={lotus} />
                 <CameraRig preset={preset} nonce={nonce} reduce={reduce} />
               </Suspense>
             </Canvas>
@@ -85,6 +100,21 @@ export default function ThreeD() {
                       { value: 'up', label: 'Up', title: 'Muladhara → Sahasrara' },
                       { value: 'updown', label: 'Up–down', title: 'Up (clockwise), then down (anticlockwise)' },
                       { value: 'downup', label: 'Down–up', title: 'Down (anticlockwise), then up (clockwise)' },
+                    ]}
+                  />
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted">Lotus</span>
+                <div className="flex-1">
+                  <Segmented<LotusStyle>
+                    label="Lotus style"
+                    size="sm"
+                    value={lotus}
+                    onChange={setLotus}
+                    options={[
+                      { value: 'flat', label: 'Flat (rotating ring)', title: 'Petal ring facing you; turns clockwise up, anticlockwise down' },
+                      { value: 'bloom', label: 'Bloom (opens upward)', title: 'Closed bud that opens upward into a lotus cup when switched on' },
                     ]}
                   />
                 </div>
