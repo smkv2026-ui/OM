@@ -587,3 +587,9 @@ input[type='range']:active::-webkit-slider-thumb {
   --letter: color-mix(in oklab, var(--c-ink) 45%, var(--text));
   --rainbow-l: 46%;
 }
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
