@@ -40,6 +40,21 @@ export default function NadiHarmony() {
   const [rounds, setRounds] = useState(1);
   const [playing, setPlaying] = useState(false);
   const [dockOpen, setDockOpen] = useState(() => matchMedia('(min-width: 1024px)').matches);
+  const [chakraStyle, setChakraStyleState] = useState<'dots' | 'ring'>(() => {
+    try {
+      return localStorage.getItem('om-nadi-chakra-style') === 'ring' ? 'ring' : 'dots';
+    } catch {
+      return 'dots';
+    }
+  });
+  const setChakraStyle = (v: 'dots' | 'ring') => {
+    setChakraStyleState(v);
+    try {
+      localStorage.setItem('om-nadi-chakra-style', v);
+    } catch {
+      /* storage unavailable */
+    }
+  };
   const [layers, setLayers] = useState<AnatomyLayers>({ chakras: true, sushumna: true, ida: true, pingala: true, spine: false });
   const [ghost, setGhost] = useState<{ conf: SensorConf; x: number; y: number } | null>(null);
   const [hint, setHint] = useState<string | null>(null);
@@ -87,6 +102,9 @@ export default function NadiHarmony() {
   useEffect(() => {
     if (engine.current) engine.current.layers = { ...layers };
   }, [layers]);
+  useEffect(() => {
+    if (engine.current) engine.current.chakraStyle = chakraStyle;
+  }, [chakraStyle]);
   useEffect(() => {
     engine.current?.setInsets(desktop ? { bottom: 0 } : { bottom: 136, top: 4 });
   }, [desktop]);
@@ -392,6 +410,16 @@ export default function NadiHarmony() {
       </Section>
       <Section title="Layers">
         <LayerChips value={layers} onChange={setLayers} />
+        <Segmented<'dots' | 'ring'>
+          label="Chakra style"
+          size="sm"
+          value={chakraStyle}
+          onChange={setChakraStyle}
+          options={[
+            { value: 'dots', label: 'Dots', title: 'The original chakra points' },
+            { value: 'ring', label: 'Flat (rotating ring)', title: 'Petal rings; during playback they switch on and turn clockwise up, anticlockwise down' },
+          ]}
+        />
       </Section>
       <Button className="w-full" onClick={reset}>
         <ResetIcon size={16} /> Reset Energy State

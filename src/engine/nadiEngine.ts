@@ -91,6 +91,16 @@ export class NadiEngine {
   marker = { active: false, y: 0, target: 0 };
   /** Chakras currently vibrating on the sensor device: drawn as rings rippling at their frequency. */
   devicePulses: { ratio: number; color: string; freq: number; intensity: number }[] = [];
+  /** How chakras are drawn: the prototype's dots, or flat lotus rings that rotate. */
+  chakraStyle: 'dots' | 'ring' = 'dots';
+  /** ring state: rotation angle per chakra; while the marker travels, chakras it has reached are lit
+   *  and turn clockwise (+1, ascending) or anticlockwise (−1, descending). */
+  private ringAngle = new Map<string, number>();
+  private ringLit = new Map<string, 1 | -1>();
+  private ringLevel = new Map<string, number>();
+  private travelDir: 1 | -1 = 1;
+  private lastTarget = 0;
+  private wasMarker = false;
   readonly drone = new Drone();
   onFrame?: (alignment: number, avgFreq: number) => void;
   onLayout?: () => void;
@@ -335,10 +345,11 @@ export class NadiEngine {
     ctx.fill(this.earrings, 'evenodd');
 
     if (this.layers.spine) this.drawSpine();
-    if (this.layers.chakras && this.silhouette === 'dharana') this.drawDharanaGlyphs(a);
+    if (this.layers.chakras && this.chakraStyle === 'ring') this.drawRings(a);
+    else if (this.layers.chakras && this.silhouette === 'dharana') this.drawDharanaGlyphs(a);
 
     // The prototype's seven chakra dots (cyan once aligned > 0.8).
-    if (this.layers.chakras) CHAKRAS.forEach((c) => {
+    if (this.layers.chakras && this.chakraStyle === 'dots') CHAKRAS.forEach((c) => {
       const y = c.targetYRatio * 300;
       ctx.beginPath();
       ctx.arc(0, y, this.silhouette === 'dharana' ? 1.8 : 4, 0, Math.PI * 2);
@@ -351,6 +362,87 @@ export class NadiEngine {
       ctx.shadowBlur = 0;
     });
     ctx.restore();
+  }
+
+  /** Flat lotus rings (figure units, inside the silhouette transform). */
+  private drawRings(a: number) {
+    const { ctx, theme } = this;
+    const m = this.marker;
+    const dt = 1 / 60;
+    // track travel direction and light chakras as the marker reaches them
+    if (m.active) {
+      if (!this.wasMarker) {
+        this.ringLit.clear();
+        this.lastTarget = m.target;
+      }
+      if (m.target !== this.lastTarget) {
+        this.travelDir = m.target < this.lastTarget ? 1 : -1; // smaller ratio = higher = ascending
+        this.lastTarget = m.target;
+      }
+      for (const c of CHAKRAS) if (Math.abs(m.y - c.targetYRatio) < 0.025) this.ringLit.set(c.id, this.travelDir);
+    } else if (this.wasMarker) this.ringLit.clear();
+    this.wasMarker = m.active;
+
+    for (const c of CHAKRAS) {
+      const dir = this.ringLit.get(c.id);
+      const want = m.active ? (dir ? 1 : 0.18) : 1;
+      const lv = (this.ringLevel.get(c.id) ?? 1) + (want - (this.ringLevel.get(c.id) ?? 1)) * 0.08;
+      this.ringLevel.set(c.id, lv);
+      const ang = (this.ringAngle.get(c.id) ?? 0) + (m.active ? (dir ? dir * 1.6 * dt * (this.reduce ? 0.2 : 1) : 0) : (c.order % 2 ? 1 : -1) * 0.25 * dt * (this.reduce ? 0.2 : 1));
+      this.ringAngle.set(c.id, ang);
+
+      const y = c.targetYRatio * 300;
+      const R = c.position.size / 2;
+      const rainbow = !!c.color.rainbow;
+      const col = rainbow ? '#c9a7ff' : c.color.primary;
+      ctx.save();
+      ctx.translate(0, y);
+      // glow
+      const gr = ctx.createRadialGradient(0, 0, 0, 0, 0, R * 1.9);
+      const ga = Math.round(Math.min(1, (0.25 + 0.35 * a) * lv) * 255).toString(16).padStart(2, '0');
+      gr.addColorStop(0, col + ga);
+      gr.addColorStop(1, col + '00');
+      ctx.fillStyle = gr;
+      ctx.beginPath();
+      ctx.arc(0, 0, R * 1.9, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 0.25 + 0.75 * lv;
+      ctx.scale(0.6 + 0.4 * lv, 0.6 + 0.4 * lv);
+      if (c.id === 'ajna') {
+        for (const sx of [-1, 1]) {
+          ctx.beginPath();
+          ctx.ellipse(sx * R * 0.6, 0, R * 0.45, R * 0.22, 0, 0, Math.PI * 2);
+          ctx.fillStyle = '#f7f3e8';
+          ctx.fill();
+          ctx.strokeStyle = theme.dark ? '#f7f3e8' : c.color.ink;
+          ctx.lineWidth = 0.8;
+          ctx.stroke();
+        }
+      } else {
+        const n = rainbow ? 24 : Math.min(c.petals.count, 16);
+        ctx.rotate(ang);
+        for (let i = 0; i < n; i++) {
+          const t = (i / n) * Math.PI * 2;
+          ctx.save();
+          ctx.rotate(t);
+          ctx.beginPath();
+          ctx.ellipse(0, -R * 0.66, R * (rainbow ? 0.12 : Math.min(0.26, 1.6 / n)), R * 0.32, 0, 0, Math.PI * 2);
+          ctx.fillStyle = rainbow ? `hsl(${(i / n) * 360} 90% 62% / .85)` : col + 'cc';
+          ctx.fill();
+          ctx.strokeStyle = theme.dark ? 'rgba(255,255,255,.35)' : c.color.ink;
+          ctx.lineWidth = 0.5;
+          ctx.stroke();
+          ctx.restore();
+        }
+      }
+      // core
+      ctx.beginPath();
+      ctx.arc(0, 0, R * 0.26, 0, Math.PI * 2);
+      ctx.fillStyle = c.id === 'muladhara' ? '#f2c230' : rainbow ? '#ffffff' : col;
+      ctx.fill();
+      ctx.restore();
+    }
+    ctx.globalAlpha = 1;
   }
 
   /** Vertebral column on the axis (figure units, inside the silhouette transform). */
