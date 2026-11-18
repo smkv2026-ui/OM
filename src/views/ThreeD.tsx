@@ -1,9 +1,11 @@
 import { Canvas } from '@react-three/fiber';
 import { Suspense, useEffect, useState } from 'react';
-import { LayersIcon, ResetIcon } from '../components/Icons';
+import { LayersIcon, MicIcon, PlayIcon, ResetIcon, StopIcon } from '../components/Icons';
+import { CHANT, playDharana, startListening, stopDharana, stopListening, useDharana3D, voiceSupported, type DharanaMode } from '../three/dharana3d';
+import { CHAKRAS } from '../data';
 import { TopBar } from '../components/Shell';
-import { Chip, Segmented } from '../components/ui';
-import { useReducedMotion } from '../lib/hooks';
+import { Chip, Segmented, Toggle } from '../components/ui';
+import { useIsDesktop, useReducedMotion } from '../lib/hooks';
 import { openChakra, useSettings } from '../lib/store';
 import { CameraRig, Scene, type Layers, type Preset } from '../three/Scene';
 
@@ -19,11 +21,21 @@ const LAYER_LABEL: Record<keyof Layers, string> = {
 export default function ThreeD() {
   const theme = useSettings((s) => s.theme);
   const reduce = useReducedMotion();
+  const desktop = useIsDesktop();
   const [preset, setPreset] = useState<Preset>('full');
   const [nonce, setNonce] = useState(0);
   const [layers, setLayers] = useState<Layers>({ body: true, chakras: true, nadis: true, spine: true, om: false, prana: false });
   const [fontsReady, setFontsReady] = useState(false);
   const [showLayers, setShowLayers] = useState(() => matchMedia('(min-width: 1024px)').matches);
+  const [showDharana, setShowDharana] = useState(false);
+  const dh = useDharana3D();
+  useEffect(
+    () => () => {
+      stopDharana();
+      stopListening();
+    },
+    [],
+  );
 
   useEffect(() => {
     // Om sprites are drawn to canvas textures — make sure the Devanagari font is ready first.
@@ -44,7 +56,7 @@ export default function ThreeD() {
               dpr={[1, 1.5]}
               gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
               camera={{ fov: 38, near: 0.05, far: 200, position: [4, 2, 5] }}
-              frameloop={reduce ? 'demand' : 'always'}
+              frameloop={reduce && !dh.active ? 'demand' : 'always'}
               style={{ touchAction: 'none' }}
             >
               <Suspense fallback={null}>
@@ -55,8 +67,65 @@ export default function ThreeD() {
           )}
         </div>
 
+          {showDharana && (
+            <div
+              className={`glass-strong absolute z-20 flex flex-col gap-3 rounded-2xl p-3 ${desktop ? 'top-8 right-4 w-[400px]' : 'inset-x-3 bottom-[76px]'}`}
+              role="group"
+              aria-label="Chakra Dharana"
+            >
+              <div className="flex flex-wrap items-center gap-2">
+                <button className="btn btn-gold !min-h-10 !rounded-full text-sm" aria-pressed={dh.playing} onClick={() => (dh.playing ? stopDharana(false) : void playDharana())}>
+                  {dh.playing ? <StopIcon size={14} /> : <PlayIcon size={14} />} {dh.playing ? 'Stop' : 'Play Chakra Dharana'}
+                </button>
+                <div className="min-w-[220px] flex-1">
+                  <Segmented<DharanaMode>
+                    label="Direction"
+                    size="sm"
+                    value={dh.mode}
+                    onChange={(mode) => dh.set({ mode })}
+                    options={[
+                      { value: 'up', label: 'Up', title: 'Muladhara → Sahasrara' },
+                      { value: 'updown', label: 'Up–down', title: 'Up (clockwise), then down (anticlockwise)' },
+                      { value: 'downup', label: 'Down–up', title: 'Down (anticlockwise), then up (clockwise)' },
+                    ]}
+                  />
+                </div>
+              </div>
+              {(desktop || !dh.playing) && (
+              <div className="flex flex-wrap items-center gap-2">
+                <label className="flex items-center gap-1.5 text-xs text-muted">
+                  Rounds
+                  <input type="number" min={1} value={dh.rounds} onChange={(e) => dh.set({ rounds: Math.max(1, parseInt(e.target.value) || 1) })} className="h-9 w-14 rounded-lg border border-line bg-transparent px-2 text-center text-sm text-text" />
+                </label>
+                <div className="min-w-[150px] flex-1 rounded-xl px-2">
+                  <Toggle id="dh-sound" label="Chant bija" checked={dh.sound} onChange={(sound) => dh.set({ sound })} />
+                </div>
+                <button
+                  className="btn !min-h-10 !rounded-full text-xs"
+                  aria-pressed={dh.listening}
+                  disabled={!voiceSupported()}
+                  onClick={() => (dh.listening ? stopListening() : startListening())}
+                  title="Say Lam, Vam, Ram, Yam, Ham, Om or Hreem to switch that chakra on"
+                  style={dh.listening ? { borderColor: 'var(--magenta)', color: 'var(--magenta)' } : undefined}
+                >
+                  <MicIcon size={16} /> {dh.listening ? 'Listening' : 'Voice'}
+                </button>
+                <button className="btn !min-h-10 !rounded-full text-xs" onClick={() => stopDharana()} disabled={!dh.active}>
+                  <ResetIcon size={14} /> Reset
+                </button>
+              </div>
+              )}
+              <p className="text-xs text-muted" aria-live="polite">
+                {dh.status || (dh.mode === 'downup' ? 'All chakras start off. The diamond descends from Sahasrara (anticlockwise), then rises (clockwise).' : 'All chakras start off. The diamond rises from Muladhara: each chakra switches on and turns clockwise going up, anticlockwise coming down.')}
+              </p>
+              {(dh.listening || dh.heard) && <p className="text-xs text-faint">{dh.heard}</p>}
+              {(desktop || !dh.playing) && <p className="text-[0.68rem] text-faint">
+                {CHAKRAS.map((c) => `${CHANT[c.id].iast}${CHANT[c.id].times > 1 ? ` ×${CHANT[c.id].times}` : ''}`).join(' · ')}
+              </p>}
+            </div>
+          )}
         <div className="pointer-events-none absolute inset-x-0 bottom-3 flex flex-col items-center gap-2 px-3">
-          {showLayers && (
+          {showLayers && (desktop || !showDharana) && (
             <div className="glass pointer-events-auto flex max-w-full flex-wrap justify-center gap-1.5 rounded-2xl p-2" role="group" aria-label="Layers">
               {(Object.keys(LAYER_LABEL) as (keyof Layers)[]).map((k) => (
                 <Chip key={k} active={layers[k]} onClick={() => setLayers((l) => ({ ...l, [k]: !l[k] }))}>
@@ -84,6 +153,9 @@ export default function ThreeD() {
             </div>
             <button className="btn btn-icon glass !rounded-2xl" onClick={() => setNonce((n) => n + 1)} aria-label="Reset camera" title="Reset camera">
               <ResetIcon size={18} />
+            </button>
+            <button className="btn glass !min-h-11 !rounded-2xl !px-3 text-xs" aria-pressed={showDharana} onClick={() => setShowDharana(!showDharana)} title="Chakra Dharana">
+              ◆ <span className="hidden sm:inline">Dharana</span>
             </button>
             <button className="btn btn-icon glass !rounded-2xl" aria-pressed={showLayers} onClick={() => setShowLayers(!showLayers)} aria-label="Layers" title="Layers">
               <LayersIcon size={18} />

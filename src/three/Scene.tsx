@@ -10,6 +10,7 @@ import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import { CHAKRAS, NADIS, PRANAS, type Chakra, type ChakraId, type PranaId } from '../data';
 import { SIDE_SPINE_POINTS } from '../figures/geometry';
 import { VAYU_PATHS } from '../engine/pranaFlow';
+import { dharanaFrame } from './dharana3d';
 
 export type Preset = 'front' | 'back' | 'side' | 'full';
 export interface Layers {
@@ -291,6 +292,10 @@ function Braid({ side, color }: { side: -1 | 1; color: string }) {
 function ChakraNode({ c, dark, onSelect, om }: { c: Chakra; dark: boolean; onSelect: (id: ChakraId) => void; om: boolean }) {
   const group = useRef<THREE.Group>(null);
   const petals = useRef<THREE.InstancedMesh>(null);
+  const glowMat = useRef<THREE.SpriteMaterial>(null);
+  const petalMat = useRef<THREE.MeshBasicMaterial>(null);
+  const coreMat = useRef<THREE.MeshBasicMaterial>(null);
+  const level = useRef(1);
   const pos = useMemo(() => chakraPos(c), [c]);
   const rainbow = !!c.color.rainbow;
   const col = rainbow ? '#c9a7ff' : c.color.primary;
@@ -319,12 +324,26 @@ function ChakraNode({ c, dark, onSelect, om }: { c: Chakra; dark: boolean; onSel
     m.instanceMatrix.needsUpdate = true;
     if (m.instanceColor) m.instanceColor.needsUpdate = true;
   }, [c, n, R, rainbow, col]);
-  useFrame(({ clock }) => {
+  useFrame(({ clock }, dt) => {
     const g = group.current;
     if (!g) return;
-    const k = 1 + 0.06 * Math.sin(clock.elapsedTime * 1.1 + c.order);
+    const D = dharanaFrame;
+    const dir = D.enabled ? D.lit.get(c.id) : undefined;
+    // Dharana: off = dim, small, still; on = bright, rotating clockwise (ascent) or anticlockwise (descent)
+    const want = !D.enabled ? 1 : dir ? (D.sounding === c.id ? 1.25 : 1) : 0.12;
+    level.current += (want - level.current) * Math.min(1, dt * 3);
+    const L = level.current;
+    const k = (1 + 0.06 * Math.sin(clock.elapsedTime * (D.sounding === c.id ? 6 : 1.1) + c.order)) * (0.55 + 0.45 * Math.min(1, L));
     g.scale.setScalar(k);
-    if (petals.current && c.id !== 'ajna') petals.current.rotation.z = clock.elapsedTime * (rainbow ? 0.25 : 0.08) * (c.order % 2 ? 1 : -1);
+    if (glowMat.current) glowMat.current.opacity = (dark ? 0.85 : 0.6) * Math.min(1.3, L);
+    if (petalMat.current) petalMat.current.opacity = 0.2 + 0.65 * Math.min(1, L);
+    if (coreMat.current) coreMat.current.opacity = 0.3 + 0.7 * Math.min(1, L);
+    const p = petals.current;
+    if (!p) return;
+    if (D.enabled) {
+      // clockwise as seen from the front = negative z rotation
+      if (dir) p.rotation.z -= dir * dt * (rainbow ? 0.9 : 1.6);
+    } else if (c.id !== 'ajna') p.rotation.z = clock.elapsedTime * (rainbow ? 0.25 : 0.08) * (c.order % 2 ? 1 : -1);
   });
   const click = (e: ThreeEvent<MouseEvent>) => {
     e.stopPropagation();
@@ -334,15 +353,15 @@ function ChakraNode({ c, dark, onSelect, om }: { c: Chakra; dark: boolean; onSel
     <group position={pos}>
       <group ref={group}>
         <sprite scale={[R * 4.2, R * 4.2, 1]}>
-          <spriteMaterial map={glowTexture()} color={col} transparent opacity={dark ? 0.85 : 0.6} depthWrite={false} blending={dark ? THREE.AdditiveBlending : THREE.NormalBlending} toneMapped={false} />
+          <spriteMaterial ref={glowMat} map={glowTexture()} color={col} transparent opacity={dark ? 0.85 : 0.6} depthWrite={false} blending={dark ? THREE.AdditiveBlending : THREE.NormalBlending} toneMapped={false} />
         </sprite>
         <mesh>
           <sphereGeometry args={[R * 0.32, 20, 14]} />
-          <meshBasicMaterial color={c.id === 'muladhara' ? '#f2c230' : rainbow ? '#ffffff' : col} toneMapped={false} />
+          <meshBasicMaterial ref={coreMat} transparent color={c.id === 'muladhara' ? '#f2c230' : rainbow ? '#ffffff' : col} toneMapped={false} />
         </mesh>
         <instancedMesh ref={petals} args={[undefined, undefined, n]} rotation={rainbow ? [-Math.PI * 0.42, 0, 0] : [0, 0, 0]}>
           <sphereGeometry args={[1, 10, 8]} />
-          <meshBasicMaterial transparent opacity={0.85} toneMapped={false} depthWrite={false} />
+          <meshBasicMaterial ref={petalMat} transparent opacity={0.85} toneMapped={false} depthWrite={false} />
         </instancedMesh>
       </group>
       {/* generous invisible hit target */}
@@ -463,6 +482,39 @@ function PranaFlows({ dark }: { dark: boolean }) {
   );
 }
 
+/** The Dharana diamond: glides along Sushumna between chakras (dharanaFrame.t → target). */
+function Diamond({ dark }: { dark: boolean }) {
+  const ref = useRef<THREE.Group>(null);
+  const pts = useMemo(() => CHAKRAS.map((c) => chakraPos(c)), []);
+  useFrame((_, dt) => {
+    const g = ref.current;
+    const D = dharanaFrame;
+    if (!g) return;
+    g.visible = D.enabled;
+    if (!D.enabled) return;
+    // slow, steady glide (~1.1 s per chakra), eased near the target
+    const d = D.target - D.t;
+    const step = Math.sign(d) * Math.min(Math.abs(d), dt * (0.35 + Math.min(1, Math.abs(d)) * 0.6));
+    D.t += step;
+    const i = Math.max(0, Math.min(pts.length - 2, Math.floor(D.t)));
+    const f = Math.max(0, Math.min(1, D.t - i));
+    g.position.lerpVectors(pts[i], pts[i + 1], f);
+    g.position.z += 0.06; // just in front of the spine so it reads over the chakra cores
+    g.rotation.y += dt * 1.5;
+  });
+  return (
+    <group ref={ref} visible={false}>
+      <mesh scale={[0.055, 0.08, 0.055]}>
+        <octahedronGeometry args={[1, 0]} />
+        <meshStandardMaterial color="#ffffff" emissive={dark ? '#ffd36e' : '#c8920f'} emissiveIntensity={0.9} metalness={0.2} roughness={0.25} />
+      </mesh>
+      <sprite scale={[0.35, 0.35, 1]}>
+        <spriteMaterial map={glowTexture()} color="#ffb703" transparent opacity={0.8} depthWrite={false} blending={dark ? THREE.AdditiveBlending : THREE.NormalBlending} toneMapped={false} />
+      </sprite>
+    </group>
+  );
+}
+
 /* ------------------------------------------------------------------ camera rig */
 
 const TARGET = new THREE.Vector3(0, -0.12, 0);
@@ -555,6 +607,7 @@ export function Scene({ layers, dark, onSelect }: { layers: Layers; dark: boolea
         </group>
       ))}
       {layers.prana && <PranaFlows dark={dark} />}
+      <Diamond dark={dark} />
       {layers.body && <Body dark={dark} />}
     </>
   );
