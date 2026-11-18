@@ -8,7 +8,7 @@
  * relative to the centre, so they survive resize and rotation.
  */
 import { CHAKRAS, NADIS } from '../data';
-import { braidPoints, CROSSINGS, FRONT_ARM_GAPS, FRONT_DETAILS, FRONT_LOOPS, FRONT_OUTLINE } from '../figures/geometry';
+import { braidPoints, CROSSINGS, FRONT_ARM_GAPS, FRONT_EARRINGS, FRONT_LINEART, FRONT_OUTLINE } from '../figures/geometry';
 import { Drone } from './drone';
 import { SENSOR_SETS, targetAlignment, type SensorConf, type SensorCount } from './sensors';
 
@@ -21,6 +21,7 @@ interface EngineTheme {
   bodyBottom: string;
   bodyRim: string;
   bodyDetail: string;
+  bodyLine: string;
   sushumna: string;
   text: string;
 }
@@ -95,15 +96,8 @@ export class NadiEngine {
   private nadis: Nadi[] = [];
   private theme!: EngineTheme;
   private body = new Path2D(`${FRONT_OUTLINE} ${FRONT_ARM_GAPS.join(' ')}`);
-  private details = (() => {
-    const p = new Path2D();
-    FRONT_DETAILS.forEach((d) => p.addPath(new Path2D(d)));
-    FRONT_LOOPS.forEach((l) => {
-      p.moveTo(l.cx + l.rx, l.cy);
-      p.ellipse(l.cx, l.cy, l.rx, l.ry, 0, 0, Math.PI * 2);
-    });
-    return p;
-  })();
+  private lineArt = new Path2D(FRONT_LINEART);
+  private earrings = new Path2D(FRONT_EARRINGS);
   private raf = 0;
   private last = 0;
   private time = 0;
@@ -174,6 +168,7 @@ export class NadiEngine {
       bodyBottom: v('--body-bottom'),
       bodyRim: v('--body-rim'),
       bodyDetail: v('--body-detail'),
+      bodyLine: v('--body-line'),
       sushumna: v('--sushumna'),
       text: v('--text'),
     };
@@ -329,10 +324,10 @@ export class NadiEngine {
     ctx.strokeStyle = theme.bodyRim;
     ctx.lineWidth = 1;
     ctx.stroke(this.body);
-    ctx.strokeStyle = theme.bodyDetail;
-    ctx.lineWidth = 0.9;
-    ctx.lineCap = 'round';
-    ctx.stroke(this.details);
+    ctx.fillStyle = theme.bodyLine;
+    ctx.fill(this.lineArt, 'evenodd');
+    ctx.fillStyle = '#d9a48c';
+    ctx.fill(this.earrings, 'evenodd');
 
     if (this.silhouette === 'dharana') this.drawDharanaGlyphs(a);
 

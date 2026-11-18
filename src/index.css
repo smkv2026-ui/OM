@@ -46,6 +46,7 @@
   --body-bottom: rgba(200, 202, 214, 0.16);
   --body-rim: rgba(225, 227, 240, 0.32);
   --body-detail: rgba(232, 234, 245, 0.55);
+  --body-line: rgba(236, 238, 248, 0.6);
   --body-shade: rgba(0, 0, 0, 0);
   --sushumna: #f5c451;
   --sushumna-core: #fff6dc;
@@ -81,6 +82,7 @@
   --body-bottom: rgba(150, 150, 156, 0.3);
   --body-rim: rgba(110, 110, 118, 0.35);
   --body-detail: rgba(55, 55, 62, 0.62);
+  --body-line: rgba(50, 50, 58, 0.72);
   --body-shade: rgba(0, 0, 0, 0);
   --sushumna: #c8920f;
   --sushumna-core: #fff3c4;

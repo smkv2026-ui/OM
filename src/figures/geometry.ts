@@ -5,13 +5,13 @@
  * So a chakra's targetYRatio × 300 is its y here, in SVG (Home, Prana) and canvas (Nadi Harmony).
  */
 import { CHAKRAS, type Chakra } from '../data';
-import { FRONT_ARM_GAPS, FRONT_OUTLINE } from './traced';
+import { FRONT_ARM_GAPS, FRONT_EARRINGS, FRONT_LINEART, FRONT_OUTLINE } from './traced';
 
-export { FRONT_OUTLINE, FRONT_ARM_GAPS };
+export { FRONT_OUTLINE, FRONT_ARM_GAPS, FRONT_LINEART, FRONT_EARRINGS };
 
 export const FRAME = { top: -198, bottom: 182, height: 380, unit: 300 } as const;
 
-/** Front-view facial / leg / hand detail strokes (hand-drawn over the traced outline). */
+/** Earlier hand-drawn front detail strokes — superseded by the traced FRONT_LINEART, kept for reference. */
 export const FRONT_DETAILS = [
   // brows
   'M-25 -154 Q-16.5 -157.5 -8 -155.5',

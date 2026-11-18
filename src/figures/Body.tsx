@@ -7,8 +7,8 @@ import {
   BACK_OUTLINE,
   chakraPoint,
   FRONT_ARM_GAPS,
-  FRONT_DETAILS,
-  FRONT_LOOPS,
+  FRONT_EARRINGS,
+  FRONT_LINEART,
   FRONT_OUTLINE,
   IDA_PATH,
   PINGALA_PATH,
@@ -70,15 +70,15 @@ export function Body({ view, look = 'premium' }: { view: FigureView; look?: Body
       )}
 
       <g fill="none" stroke={detail} strokeWidth={premium ? 0.9 : 1.1} strokeLinecap="round" strokeLinejoin="round">
-        {(view === 'front' ? FRONT_DETAILS : view === 'back' ? BACK_DETAILS : SIDE_DETAILS).map((d) => (
-          <path key={d} d={d} />
-        ))}
-        {view === 'front' &&
-          FRONT_LOOPS.map((l, i) => (
-            // the first two loops are the earrings (warm peach, as in the reference figure)
-            <ellipse key={i} cx={l.cx} cy={l.cy} rx={l.rx} ry={l.ry} stroke={i < 2 ? '#d9a48c' : undefined} strokeWidth={i < 2 ? 1.3 : undefined} />
-          ))}
+        {view !== 'front' && (view === 'back' ? BACK_DETAILS : SIDE_DETAILS).map((d) => <path key={d} d={d} />)}
       </g>
+      {view === 'front' && (
+        <g>
+          {/* traced line art: face, armpits, crossed legs, hands — exactly as in the reference figure */}
+          <path d={FRONT_LINEART} fill={premium ? 'var(--body-line)' : 'var(--text)'} fillRule="evenodd" />
+          <path d={FRONT_EARRINGS} fill="#d9a48c" fillRule="evenodd" />
+        </g>
+      )}
 
       {view === 'side' && <SideInterior premium={premium} />}
       {view === 'back' && <BackSpine />}

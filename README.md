@@ -137,7 +137,7 @@ Rules: never invent a verse or a verse number. If unsure, leave `verses` empty, 
 
 The app ships **no raster figures** — every figure is vector:
 
-- **Front** — traced from the prototype's own silhouette (the frame the 7-sensor calibration was made in).
+- **Front** — traced from the prototype's own figure: outline (fingers included) and its line art (face, hands, crossed legs) via `scripts/trace-figure.py`.
 - **Back** — redrawn from Fig. 4.4 (`reference/body-views/back.png`): back of the head with ears, lotuses on the spine, arms bent with hands in the lap. The scan was de-skewed and mapped with `y = 0.303·px − 232.5`, which puts every lotus within ±7 units of the calibrated heights; positions are `position.backY/backW/backH` in `chakras.json`. The 3D model uses the same heights, so its Front and Back presets line up with both figures.
 - **Side** — redrawn from Fig. 5.1 (`position.sideX/sideY`).
 
