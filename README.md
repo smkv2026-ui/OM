@@ -145,7 +145,7 @@ To refine a view from a new reference image:
 
 1. Put the image in `reference/body-views/` (e.g. `back.png`). Scans in `reference/` are git-ignored.
 2. For a figure on a transparent background, trace it into the shared frame:
-   `python3 scripts/trace-silhouette.py reference/body-views/back.png 110 0.5 > back.json` and paste the paths into `src/figures/geometry.ts` (e.g. a new `BACK_OUTLINE`).
+   `python3 scripts/trace-silhouette.py reference/body-views/my-figure.png 110 0.5 > paths.json` and paste the paths into `src/figures/geometry.ts`.
 3. For line-art scans, draw paths by hand in `geometry.ts` and check them with `node scripts/overlay-check.cjs src/figures/traced.ts details.svg <image.png> out.png`, which renders your paths over the image.
 4. If chakra positions change, update `position` in `chakras.json`: `backY` drives the Back view and 3D heights, `sideX/sideY` the Side view and 3D spinal depth.
 
