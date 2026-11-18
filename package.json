@@ -7,7 +7,10 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc -b"
+    "typecheck": "tsc -b",
+    "icons": "node scripts/make-icons.cjs",
+    "test:nadi": "node scripts/test-nadi.cjs .",
+    "test:offline": "node scripts/test-offline.cjs offline.png"
   },
   "dependencies": {
     "@fontsource/cormorant-garamond": "5.2.6",

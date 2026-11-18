@@ -295,7 +295,7 @@ function Center({ chakra, cfg, mini, id }: { chakra: Chakra; cfg: Cfg; mini: boo
                 d="M-30 -22c6-6 16-4 18 2s-4 8-2 14-8 10-14 6-10-16-2-22zM6 -30c8-2 18 2 20 10s-4 10 2 16-2 14-10 12-6-10-10-14-10-20-2-24zM-8 10c6-2 12 4 10 12s-8 12-12 6-4-16 2-18z"
                 fill="var(--stroke)"
                 stroke="none"
-                opacity={0.55}
+                opacity={0.22}
               />
             </g>
           )}

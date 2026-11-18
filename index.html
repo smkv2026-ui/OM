@@ -10,7 +10,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
-    <link rel="apple-touch-icon" href="./icons/icon-192.png" />
+    <link rel="apple-touch-icon" href="./icons/apple-touch-180.png" />
     <script>
       // Pre-paint theme: stored choice, else system preference. Avoids a flash.
       (function () {
@@ -22,9 +22,24 @@
         } catch (e) {}
       })();
     </script>
+    <style>
+      html, body { margin: 0; height: 100%; background: #07061a; color: #eeebff; }
+      html[data-theme='light'], html[data-theme='light'] body { background: #f6efe1; color: #251e33; }
+      .splash { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 24px;
+        font-family: 'Iowan Old Style', Georgia, serif; background: radial-gradient(60% 45% at 50% 40%, rgba(79, 227, 255, 0.12), transparent 70%); }
+      .splash-om { font-size: 64px; line-height: 1; color: #f3c35b; text-shadow: 0 0 28px rgba(243, 195, 91, 0.6); }
+      .splash h1 { font-size: 40px; font-weight: 500; margin: 12px 0 6px; letter-spacing: 0.04em; }
+      .splash p { max-width: 340px; font-size: 17px; line-height: 1.5; opacity: 0.75; margin: 0; }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div class="splash" aria-hidden="true">
+        <div class="splash-om">ॐ</div>
+        <h1>Om</h1>
+        <p>Ida · Pingala · Sushumna — the seven lotuses, the five breaths and the texts that describe them.</p>
+      </div>
+    </div>
     <noscript>Om needs JavaScript to run.</noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>

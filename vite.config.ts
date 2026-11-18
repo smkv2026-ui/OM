@@ -44,9 +44,10 @@ export default defineConfig({
     chunkSizeWarningLimit: 1200,
     rollupOptions: {
       output: {
+        // three.js stays in the lazily-loaded 3D route chunk; only shared vendors are split here.
         manualChunks(id) {
-          if (id.includes('three') || id.includes('@react-three')) return 'three';
-          if (id.includes('framer-motion')) return 'motion';
+          if (/node_modules\/(react|react-dom|scheduler)\//.test(id)) return 'react';
+          if (/node_modules\/(framer-motion|motion-dom|motion-utils)\//.test(id)) return 'motion';
         },
       },
     },
