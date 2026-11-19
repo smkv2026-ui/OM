@@ -11,3 +11,7 @@ test-results
 screenshots/tmp
 *.tsbuildinfo
 .firebase/
+# screenshots written by scripts/test-*.cjs
+/device.png
+/offline.png
+/nadi-*.png
