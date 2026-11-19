@@ -1,7 +1,9 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useMemo, useState } from 'react';
 import { Body } from '../figures/Body';
-import { ASANAS, limb, MUDRAS, poseFigure, type Asana, type AsanaId, type HandShape, type Mudra, type MudraId } from '../figures/pose';
+import { Pen } from '../figures/draw';
+import { handKind, handParts, type HandKind } from '../figures/hands';
+import { ASANAS, MUDRAS, poseFigure, type Asana, type AsanaId, type HandShape, type Mudra, type MudraId } from '../figures/pose';
 import { useReducedMotion } from '../lib/hooks';
 import { useSettings } from '../lib/store';
 import { PlayIcon, StopIcon } from './Icons';
@@ -86,18 +88,17 @@ function Figure({
   const fp = useMemo(() => poseFigure(asana, mudra, over), [asana, mudra, over]);
   return (
     <svg viewBox={vb} className={className} aria-hidden="true">
-      <Body view="front" spine={false} pose={fp} />
+      <Body view="front" spine={false} pose={fp} look="illus" />
     </svg>
   );
 }
 
 /** Where to zoom for each kind of mudra. */
-const CROP = { lap: '-110 30 220 140', chest: '-110 -110 220 150', eyes: '-36 -162 72 44' };
+const CROP = { eyes: '-36 -162 72 44' };
 
 function MudraThumb({ mudra, asana }: { mudra: Mudra; asana: AsanaId }) {
   if (mudra.eyes) return <Figure asana={asana} mudra={mudra.id} vb={CROP.eyes} className="h-16 w-full" />;
-  if (mudra.arms === 'knees') return <Hand shape={mudra.hand} className="h-16 w-full" />;
-  return <Figure asana={asana} mudra={mudra.id} vb={CROP[mudra.arms]} className="h-16 w-full" />;
+  return <Hand shape={mudra.hand} palmUp={mudra.id !== 'jnana'} className="h-16 w-full" />;
 }
 
 /* ------------------------------------------------------------------ step player */
@@ -223,12 +224,11 @@ function AsanaDetail({ a, mudra }: { a: Asana; mudra: MudraId }) {
 function MudraDetail({ m, asana }: { m: Mudra; asana: AsanaId }) {
   const frames = m.steps.map((st, n) => {
     if (m.eyes) return <Figure key={n} asana={asana} mudra={m.id} vb={CROP.eyes} className="h-full w-full" over={{ eyes: st.eyes }} />;
-    if (m.arms === 'knees') return <Hand key="hand" shape={st.hand ?? m.hand} palmUp={m.id !== 'jnana'} className="h-full w-full" />;
-    return <Figure key={n} asana={asana} mudra={m.id} vb={CROP[m.arms]} className="h-full w-full" over={{ hand: st.hand }} />;
+    return <Hand key={n} shape={st.hand ?? m.hand} palmUp={m.id !== 'jnana'} caption className="h-full w-full" />;
   });
   return (
     <div className="glass grid gap-4 rounded-2xl p-3 md:grid-cols-2">
-      <Player frames={frames} steps={m.steps.map((s) => s.text)} k={m.id} morph={m.arms === 'knees' && !m.eyes} />
+      <Player frames={frames} steps={m.steps.map((s) => s.text)} k={m.id} />
       <About it={m} />
     </div>
   );
@@ -236,37 +236,26 @@ function MudraDetail({ m, asana }: { m: Mudra; asana: AsanaId }) {
 
 /* ------------------------------------------------------------------ hand close-up */
 
-/**
- * A stylised right hand, fingers up, for the seals made on the knees. Each finger turns about its
- * base and shortens as it curls; the transitions animate between steps.
- */
-function Hand({ shape, palmUp = false, className }: { shape: HandShape; palmUp?: boolean; className?: string }) {
-  const reduce = useReducedMotion();
-  type Pt = [number, number];
-  const idx: Pt[] = shape === 'index-thumb' ? [[-15, -8], [-25, -24], [-30, -14]] : [[-15, -8], [-16, -30], [-17, -50]];
-  const mid: Pt[] = [[-4, -8], [-4, -32], [-4, -54]];
-  const ring: Pt[] = shape === 'prana' ? [[7, -8], [10, -2], [3, 8]] : [[7, -8], [8, -30], [9, -50]];
-  const little: Pt[] = shape === 'prana' ? [[17, -8], [17, 2], [9, 10]] : [[17, -8], [19, -26], [21, -40]];
-  const thumb: Pt[] =
-    shape === 'index-thumb' ? [[-20, 18], [-31, 2], [-31, -12]] : shape === 'prana' ? [[-20, 18], [-8, 16], [1, 10]] : [[-20, 18], [-34, 8], [-44, -4]];
-  const t = { duration: reduce ? 0 : 0.8, ease: [0.22, 1, 0.36, 1] as const };
-  const skin = { fill: 'color-mix(in oklab, var(--pose-skin-top) 45%, var(--bg))', stroke: 'var(--body-line)', strokeWidth: 1.4 };
-  const part = (pts: Pt[], w: number[], key: string) => {
-    const d = limb(pts, w);
-    return <motion.path key={key} {...skin} initial={false} animate={{ d }} transition={t} />;
-  };
+const HAND_VB: Record<HandKind, string> = { side: '-196 -108 340 196', lap: '-210 -100 420 196', chest: '-150 -112 300 300' };
+
+/** A mudra drawn large as a line illustration (see figures/hands.ts). */
+function Hand({ shape, palmUp = true, caption = false, className }: { shape: HandShape; palmUp?: boolean; caption?: boolean; className?: string }) {
+  const kind = handKind(shape);
+  const parts = useMemo(() => handParts(new Pen({ at: [0, 0], flip: kind === 'side' && !palmUp }), shape), [shape, kind, palmUp]);
+  const [x, y, w, h] = HAND_VB[kind].split(' ').map(Number);
   return (
-    <svg viewBox="-60 -66 120 120" className={className} aria-hidden="true">
-      <path d="M-22 -12 Q-24 26 -6 38 L14 38 Q26 26 23 -12 Q0 -16 -22 -12 Z" {...skin} />
-      {palmUp && <path d="M-10 14 Q2 22 14 12 M-8 26 Q4 30 12 24" fill="none" stroke="var(--body-line)" strokeWidth={0.9} opacity={0.6} />}
-      {part(mid, [10, 9.5, 8.5], 'm')}
-      {part(idx, [10, 9.5, 8.5], 'i')}
-      {part(ring, [10, 9.5, 8.5], 'r')}
-      {part(little, [9, 8.5, 7.5], 'l')}
-      {part(thumb, [13, 11.5, 10], 't')}
-      <text x={0} y={52} textAnchor="middle" fontSize={7} fill="var(--faint)">
-        {palmUp ? 'palm up' : 'palm down'}
-      </text>
+    <svg viewBox={HAND_VB[kind]} className={className} aria-hidden="true">
+      {parts.map((p, i) => (
+        <g key={i}>
+          {p.d && <path d={p.d} fill="var(--illus-fill)" stroke="var(--illus-ink)" strokeWidth={2.4} strokeLinejoin="round" />}
+          {p.lines?.map((l, j) => <path key={j} d={l} fill="none" stroke="var(--illus-ink)" strokeWidth={1.8} strokeLinecap="round" />)}
+        </g>
+      ))}
+      {caption && kind === 'side' && (
+        <text x={x + w - 8} y={y + h - 8} textAnchor="end" fontSize={13} fill="var(--faint)">
+          {palmUp ? 'palm up' : 'palm down'}
+        </text>
+      )}
     </svg>
   );
 }

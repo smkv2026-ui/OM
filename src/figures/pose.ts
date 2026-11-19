@@ -1,26 +1,19 @@
 /**
  * Meditation pose geometry (front view) for every asana × mudra.
- * Padmasana with hands on the knees = the traced reference figure, untouched. Every other combination
- * keeps the traced head and torso (clipped by TORSO_MASK) and adds generated legs, arms and hands in
- * the same style. All coordinates are in the shared figure frame (see geometry.ts).
+ * Padmasana with Jnana / Chin on the knees = the traced reference figure, untouched. Every other
+ * combination keeps the traced head and torso (clipped by TORSO_MASK) and adds drawn legs, feet, arms
+ * and mudra hands as ordered, outlined parts (back → front), so overlaps read like a line drawing.
+ * All coordinates are in the shared figure frame (see geometry.ts).
  */
 import posesRaw from '../data/poses.json';
+import { blob, ellipsePts, limb, Pen, type P, type Part } from './draw';
+import { handParts, SIDE_WRIST, type HandShape } from './hands';
 
 export type AsanaId = 'padmasana' | 'ardha-padmasana' | 'siddhasana' | 'vajrasana';
-export type MudraId = 'jnana' | 'chin' | 'dhyana' | 'bhairava' | 'yoni' | 'anjali' | 'prana' | 'shambhavi';
+export type MudraId = 'jnana' | 'chin' | 'dhyana' | 'bhairava' | 'yoni' | 'anjali' | 'prana' | 'vayu' | 'shambhavi';
 export type LegState = 'extended' | 'padma-half' | 'padma' | 'ardha-tuck' | 'ardha' | 'siddha-half' | 'siddha' | 'kneel' | 'vajra';
 export type ArmPose = 'knees' | 'lap' | 'chest';
-export type HandShape =
-  | 'open'
-  | 'index-thumb'
-  | 'prana'
-  | 'lap-open'
-  | 'lap-stack'
-  | 'dhyana'
-  | 'yoni-half'
-  | 'yoni'
-  | 'chest-open'
-  | 'anjali';
+export type { HandShape } from './hands';
 export type Eyes = 'closed' | 'open' | 'up';
 
 export interface Asana {
@@ -51,64 +44,73 @@ export const MUDRAS = posesRaw.mudras as Mudra[];
 export const asanaById = (id: string) => ASANAS.find((a) => a.id === id) ?? ASANAS[0];
 export const mudraById = (id: string) => MUDRAS.find((m) => m.id === id) ?? MUDRAS[0];
 
-type P = [number, number];
-
-/* ------------------------------------------------------------------ helpers */
-
-/** Catmull-Rom resample of a centre line. */
-function resample(pts: P[], n = 18): P[] {
-  const out: P[] = [];
-  for (let i = 0; i < pts.length - 1; i++) {
-    const p0 = pts[Math.max(0, i - 1)], p1 = pts[i], p2 = pts[i + 1], p3 = pts[Math.min(pts.length - 1, i + 2)];
-    for (let k = 0; k < n; k++) {
-      const t = k / n, t2 = t * t, t3 = t2 * t;
-      const f = (a: number, b: number, c: number, d: number) =>
-        0.5 * (2 * b + (-a + c) * t + (2 * a - 5 * b + 4 * c - d) * t2 + (-a + 3 * b - 3 * c + d) * t3);
-      out.push([f(p0[0], p1[0], p2[0], p3[0]), f(p0[1], p1[1], p2[1], p3[1])]);
-    }
-  }
-  out.push(pts[pts.length - 1]);
-  return out;
-}
-
-/** A tapered limb with round ends along a centre line: widths given at each control point. */
-export function limb(pts: P[], widths: number[]): string {
-  const c = resample(pts);
-  const W = (i: number) => {
-    const t = (i / (c.length - 1)) * (widths.length - 1);
-    const k = Math.min(widths.length - 2, Math.floor(t));
-    return widths[k] + (widths[k + 1] - widths[k]) * (t - k);
-  };
-  const L: P[] = [], R: P[] = [];
-  for (let i = 0; i < c.length; i++) {
-    const a = c[Math.max(0, i - 1)], b = c[Math.min(c.length - 1, i + 1)];
-    const dx = b[0] - a[0], dy = b[1] - a[1], len = Math.hypot(dx, dy) || 1;
-    const nx = -dy / len, ny = dx / len, w = W(i) / 2;
-    L.push([c[i][0] + nx * w, c[i][1] + ny * w]);
-    R.push([c[i][0] - nx * w, c[i][1] - ny * w]);
-  }
-  const f = (p: P) => `${p[0].toFixed(1)} ${p[1].toFixed(1)}`;
-  const wEnd = W(c.length - 1) / 2, wStart = W(0) / 2;
-  let d = `M${f(L[0])}`;
-  for (const p of L.slice(1)) d += `L${f(p)}`;
-  d += `A${wEnd.toFixed(1)} ${wEnd.toFixed(1)} 0 0 0 ${f(R[R.length - 1])}`;
-  for (const p of R.slice(0, -1).reverse()) d += `L${f(p)}`;
-  d += `A${wStart.toFixed(1)} ${wStart.toFixed(1)} 0 0 0 ${f(L[0])}Z`;
-  return d;
-}
-
-const ell = (cx: number, cy: number, rx: number, ry: number, rot = 0) => {
-  const r = (rot * Math.PI) / 180, c = Math.cos(r), s = Math.sin(r);
-  const pt = (a: number) => [cx + rx * Math.cos(a) * c - ry * Math.sin(a) * s, cy + rx * Math.cos(a) * s + ry * Math.sin(a) * c];
-  const [x0, y0] = pt(0), [x1, y1] = pt(Math.PI);
-  return `M${x0.toFixed(1)} ${y0.toFixed(1)}A${rx} ${ry} ${rot} 1 1 ${x1.toFixed(1)} ${y1.toFixed(1)}A${rx} ${ry} ${rot} 1 1 ${x0.toFixed(1)} ${y0.toFixed(1)}Z`;
-};
-
 /* ------------------------------------------------------------------ torso */
 
 /** Keeps the traced head, neck, shoulders and torso; arms and legs are cut away. */
 export const TORSO_MASK =
   'M-72 -215L72 -215L72 -66L66 -42L61 -20L56 0L54 20L49 45L54 70L58 92L-58 92L-54 70L-49 45L-54 20L-56 0L-61 -20L-66 -42L-72 -66Z';
+/** marker part: the traced torso goes here in the drawing order */
+export const TORSO = '__torso__';
+
+const fig = new Pen();
+const ell = (cx: number, cy: number, rx: number, ry: number, rot = 0) => blob(ellipsePts(cx, cy, rx, ry, rot));
+
+/* ------------------------------------------------------------------ feet */
+
+/** Foot with the sole toward the viewer, lying along +x from the heel (Padmasana / Siddhasana). */
+function footSole(pen: Pen): Part {
+  return pen.blob(
+    [
+      [-8, -8],
+      [14, -10],
+      [36, -11],
+      [52, -14],
+      [66, -13],
+      [76, -7],
+      [79, 1],
+      [75, 9],
+      [62, 13],
+      [46, 12],
+      [30, 8],
+      [12, 9],
+      [-6, 9],
+      [-12, 1],
+    ],
+    [
+      pen.line([[64, -10], [76, -6]]),
+      pen.line([[64, -5], [78, -2]]),
+      pen.line([[64, 0], [78, 3]]),
+      pen.line([[63, 5], [75, 8]]),
+      pen.line([[6, 2], [24, 0], [42, 2]]),
+    ],
+  );
+}
+
+/** Upright foot, toes up, sole toward the viewer (legs stretched toward the viewer). */
+function footUp(pen: Pen): Part {
+  return pen.blob(
+    [
+      [-11, 0],
+      [-14, -18],
+      [-16, -36],
+      [-14, -50],
+      [-7, -57],
+      [4, -58],
+      [13, -52],
+      [16, -38],
+      [14, -18],
+      [11, 0],
+      [0, 5],
+    ],
+    [pen.line([[-8, -50], [-6, -40]]), pen.line([[-1, -52], [0, -42]]), pen.line([[6, -51], [6, -41]]), pen.line([[-4, -22], [0, -10], [4, -22]])],
+  );
+}
+
+/** Pen for a foot: heel at `heel`, toes toward `toe`. */
+function footPen(heel: P, toe: P, k = 1, mirror = false) {
+  const a = (Math.atan2(toe[1] - heel[1], toe[0] - heel[0]) * 180) / Math.PI;
+  return mirror ? new Pen({ at: heel, angle: 180 - a, k, mirror: true }) : new Pen({ at: heel, angle: a, k });
+}
 
 /* ------------------------------------------------------------------ legs */
 
@@ -117,150 +119,97 @@ export interface Knees {
   r: P;
 }
 interface Legs {
-  under: string[];
-  over: string[];
+  back: Part[];
+  front: Part[];
   knees: Knees;
+  /** where hands rest on the thighs instead of the knees (Vajrasana) */
+  thighs?: boolean;
 }
 
-const hips = () => [`M-62 78Q-70 112 -58 132L58 132Q70 112 62 78Q0 70 -62 78Z`];
+const HIPS: Part = { d: 'M-62 78Q-72 112 -60 136L60 136Q72 112 62 78Q0 70 -62 78Z' };
+
+const thigh = (s: number, knee: P) => fig.limb([[s * 26, 140], [s * 92, 154], knee], [74, 56, 42]);
+/** shin of the leg on side s, from its knee to an ankle near the centre */
+const shin = (s: number, knee: P, mid: P, ankle: P) => fig.limb([[knee[0] - s * 4, knee[1] + 3], mid, ankle], [40, 34, 26], { creases: [0.12] });
+/** a leg stretched toward the viewer */
+const stretched = (s: number): Part[] => [fig.limb([[s * 34, 136], [s * 42, 166], [s * 46, 186]], [64, 52, 42]), footUp(new Pen({ at: [s * 48, 196], k: 1 }))];
+/** foot lying sole-up from heel toward toe; mirrored when the toes point to −x */
+const sole = (heel: P, toe: P) => footSole(footPen(heel, toe, 1, toe[0] < heel[0]));
 
 export function legs(state: LegState): Legs {
-  const thigh = (s: 1 | -1, knee: P) => limb([[s * 34, 112], [s * 90, 138], knee], [50, 44, 36]);
   switch (state) {
     case 'extended':
-      return {
-        under: [],
-        over: [...hips(), limb([[-34, 100], [-38, 150], [-42, 176]], [46, 38, 30]), limb([[34, 100], [38, 150], [42, 176]], [46, 38, 30]), ell(-46, 182, 11, 13), ell(46, 182, 11, 13)],
-        knees: { l: [-40, 150], r: [40, 150] },
-      };
-    case 'padma-half': {
-      const kr: P = [148, 158];
-      return {
-        under: [],
-        over: [
-          ...hips(),
-          limb([[-34, 100], [-38, 150], [-42, 176]], [46, 38, 30]),
-          ell(-46, 182, 11, 13),
-          thigh(1, kr),
-          limb([kr, [60, 148], [-20, 122], [-52, 110]], [32, 28, 24, 20]),
-          ell(-62, 106, 18, 9, -15),
-        ],
-        knees: { l: [-40, 150], r: kr },
-      };
-    }
+      return { back: [HIPS], front: [...stretched(-1), ...stretched(1)], knees: { l: [-42, 166], r: [42, 166] }, thighs: true };
+    case 'padma-half':
     case 'padma': {
-      const kl: P = [-148, 158], kr: P = [148, 158];
-      return {
-        under: [],
-        over: [
-          ...hips(),
-          thigh(-1, kl),
-          thigh(1, kr),
-          limb([kl, [-60, 150], [20, 124], [52, 110]], [32, 28, 24, 20]),
-          ell(62, 106, 18, 9, 15),
-          limb([kr, [60, 148], [-20, 122], [-52, 110]], [32, 28, 24, 20]),
-          ell(-62, 106, 18, 9, -15),
-        ],
-        knees: { l: kl, r: kr },
-      };
+      const kl: P = [-152, 166], kr: P = [152, 166];
+      // figure's right leg (viewer's left) goes first, the left foot rests on top
+      const right = [shin(-1, kl, [-84, 164], [4, 150]), sole([6, 148], [86, 122])];
+      const left = [shin(1, kr, [84, 164], [-4, 150]), sole([-6, 148], [-86, 122])];
+      if (state === 'padma-half') return { back: [HIPS], front: [thigh(-1, kl), ...stretched(1), ...right], knees: { l: kl, r: [42, 166] } };
+      return { back: [HIPS], front: [thigh(-1, kl), thigh(1, kr), ...right, ...left], knees: { l: kl, r: kr } };
     }
     case 'ardha-tuck':
     case 'ardha': {
-      const kl: P = [-140, 160], kr: P = [140, 160];
-      const top = state === 'ardha';
-      return {
-        under: [limb([kl, [-60, 172], [40, 172], [88, 168]], [32, 28, 24, 18])],
-        over: [
-          ...hips(),
-          thigh(-1, kl),
-          top ? thigh(1, kr) : limb([[34, 100], [38, 150], [42, 176]], [46, 38, 30]),
-          ...(top ? [limb([kr, [60, 148], [-20, 122], [-52, 110]], [32, 28, 24, 20]), ell(-62, 106, 18, 9, -15)] : [ell(46, 182, 11, 13)]),
-        ],
-        knees: { l: kl, r: top ? kr : [40, 150] },
-      };
+      const kl: P = [-150, 168], kr: P = [150, 166];
+      // left (viewer's left) leg folds under the other thigh
+      const under = [shin(-1, kl, [-60, 184], [40, 184]), sole([46, 184], [120, 178])];
+      if (state === 'ardha-tuck') return { back: [HIPS], front: [thigh(-1, kl), ...under, ...stretched(1)], knees: { l: kl, r: [42, 166] } };
+      return { back: [HIPS], front: [thigh(-1, kl), ...under, thigh(1, kr), shin(1, kr, [84, 164], [-4, 150]), sole([-6, 148], [-86, 122])], knees: { l: kl, r: kr } };
     }
     case 'siddha-half':
     case 'siddha': {
-      const kl: P = [-138, 158], kr: P = [138, 158];
-      const full = state === 'siddha';
-      return {
-        under: [],
-        over: [
-          ...hips(),
-          thigh(-1, kl),
-          limb([kl, [-70, 168], [-6, 160]], [32, 27, 24]),
-          ell(10, 160, 16, 8, 8),
-          ...(full ? [thigh(1, kr), limb([kr, [70, 150], [6, 142]], [32, 27, 24]), ell(-10, 144, 16, 8, -8)] : [limb([[34, 100], [38, 150], [42, 176]], [46, 38, 30]), ell(46, 182, 11, 13)]),
-        ],
-        knees: { l: kl, r: full ? kr : [40, 150] },
-      };
+      const kl: P = [-146, 170], kr: P = [146, 168];
+      // left heel at the perineum, right heel just above it, toes tucked between calf and thigh
+      const first = [shin(-1, kl, [-74, 182], [-4, 180]), sole([0, 180], [74, 172])];
+      if (state === 'siddha-half') return { back: [HIPS], front: [thigh(-1, kl), ...first, ...stretched(1)], knees: { l: kl, r: [42, 166] } };
+      return { back: [HIPS], front: [thigh(-1, kl), thigh(1, kr), ...first, shin(1, kr, [74, 166], [4, 160]), sole([0, 160], [-76, 150])], knees: { l: kl, r: kr } };
     }
     case 'kneel':
     case 'vajra': {
       // kneeling, seen from the front: thighs come toward the viewer, knees together, feet hidden behind
-      const ky = state === 'kneel' ? 182 : 170;
-      return {
-        under: [],
-        over: [`M-60 82Q-66 108 -58 124L58 124Q66 108 60 82Q0 74 -60 82Z`, limb([[-30, 98], [-30, ky - 6]], [54, 46]), limb([[30, 98], [30, ky - 6]], [54, 46])],
-        knees: { l: [-32, ky - 22], r: [32, ky - 22] },
-      };
+      const ky = state === 'kneel' ? 200 : 186;
+      const t = (s: number) =>
+        fig.limb([[s * 30, 104], [s * 32, (104 + ky) / 2], [s * 30, ky]], [66, 62, 54], { extra: [fig.line([[s * 18, ky - 6], [s * 30, ky - 12], [s * 42, ky - 6]])] });
+      return { back: [HIPS], front: [t(-1), t(1)], knees: { l: [-32, ky - 40], r: [32, ky - 40] }, thighs: true };
     }
   }
 }
 
 /* ------------------------------------------------------------------ arms + hands */
 
-const SHOULDER: P = [64, -60];
+const SH = (s: number): P => [s * 58, -62];
+/** a whole arm as one smooth limb: shoulder → upper arm → elbow → forearm → wrist */
+const arm = (s: number, a: P, elbow: P, b: P, wrist: P) => fig.limb([SH(s), a, elbow, b, wrist], [34, 29, 24, 21, 18], { creases: [0.5] });
 
-export function arms(pose: ArmPose, knees: Knees, hand: HandShape): { shapes: string[]; marks: { d: string; fill?: string; stroke?: boolean }[] } {
-  const shapes: string[] = [];
-  const marks: { d: string; fill?: string; stroke?: boolean }[] = [];
-  for (const s of [-1, 1] as const) {
-    shapes.push(ell(s * SHOULDER[0], SHOULDER[1], 17, 15));
-    const knee = s === -1 ? knees.l : knees.r;
+export function arms(pose: ArmPose, L: Legs, hand: HandShape, palmUp: boolean): Part[] {
+  const parts: Part[] = [];
+  for (const s of [-1, 1]) {
     if (pose === 'knees') {
-      const hx = knee[0] - s * 4, hy = knee[1] - 18;
-      const near = Math.abs(knee[0]) < 80; // vajrasana: hands on the thighs
-      const elbow: P = near ? [s * 84, 30] : [s * 110, 22];
-      shapes.push(limb([[s * SHOULDER[0], SHOULDER[1]], [s * 90, -20], elbow], [26, 23, 20]));
-      shapes.push(limb([elbow, [(elbow[0] + hx) / 2, (elbow[1] + hy) / 2 + 4], [hx, hy - 8]], [20, 17, 14]));
-      shapes.push(ell(hx, hy + 2, 10, 13, s * 10));
-      if (hand === 'index-thumb' || hand === 'prana') marks.push({ d: ell(hx - s * 2, hy + 4, 3.6, 6.5), stroke: true });
-      if (hand === 'prana') marks.push({ d: `M${hx + s * 4} ${hy - 4}L${hx + s * 1} ${hy + 9}`, stroke: true });
+      const knee = s === -1 ? L.knees.l : L.knees.r;
+      if (L.thighs) {
+        const elbow: P = [s * 88, 46], wrist: P = [s * Math.max(44, Math.abs(knee[0]) + 8), knee[1] - 30];
+        parts.push(arm(s, [s * 84, -14], elbow, [s * 74, 96], wrist));
+        parts.push(...handParts(new Pen({ at: wrist, origin: SIDE_WRIST, angle: s === 1 ? 98 : 82, k: 0.22, flip: !palmUp }), hand, false));
+      } else {
+        const elbow: P = [s * 112, 28], wrist: P = [knee[0] - s * 16, knee[1] - 44];
+        parts.push(arm(s, [s * 92, -24], elbow, [s * 126, 76], wrist));
+        parts.push(...handParts(new Pen({ at: wrist, origin: SIDE_WRIST, angle: 64, k: 0.24, mirror: s === -1, flip: !palmUp }), hand, false));
+      }
     } else if (pose === 'lap') {
-      const elbow: P = [s * 88, 38];
-      shapes.push(limb([[s * SHOULDER[0], SHOULDER[1]], [s * 84, -16], elbow], [26, 23, 20]));
-      shapes.push(limb([elbow, [s * 62, 92], [s * 28, 112]], [20, 17, 14]));
+      const yoni = hand === 'yoni' || hand === 'yoni-half';
+      const elbow: P = [s * 92, 44], wrist: P = yoni ? [s * 36, 98] : [s * 34, 118];
+      parts.push(arm(s, [s * 86, -14], elbow, [s * 74, 90], wrist));
     } else {
-      const elbow: P = [s * 82, 6];
-      shapes.push(limb([[s * SHOULDER[0], SHOULDER[1]], [s * 84, -30], elbow], [26, 23, 20]));
-      shapes.push(limb([elbow, [s * 40, -6], [s * 12, -24]], [20, 17, 14]));
+      const elbow: P = [s * 86, 12], wrist: P = [s * (hand === 'anjali' ? 12 : 22), -16];
+      parts.push(arm(s, [s * 88, -28], elbow, [s * 50, 4], wrist));
     }
   }
-  // hands that meet at the centre
   if (pose === 'lap') {
-    if (hand === 'yoni' || hand === 'yoni-half') {
-      shapes.push(ell(-14, 114, 13, 11, 20), ell(14, 114, 13, 11, -20));
-      marks.push({ d: ell(-14, 114, 13, 11, 20), stroke: true }, { d: ell(14, 114, 13, 11, -20), stroke: true });
-      if (hand === 'yoni') marks.push({ d: 'M0 98L10 112L0 128L-10 112Z', stroke: true });
-      else marks.push({ d: 'M-12 114L12 114M-12 118L12 118', stroke: true });
-    } else {
-      shapes.push(ell(0, 122, 30, 10), ell(0, 115, 28, 9));
-      marks.push({ d: hand === 'lap-open' ? `${ell(-15, 118, 15, 8)} ${ell(15, 118, 15, 8)}` : `${ell(0, 122, 30, 10)} M-26 113Q0 106 26 113`, stroke: true });
-      if (hand === 'dhyana') marks.push({ d: 'M-12 108Q0 98 12 108', stroke: true });
-      if (hand === 'lap-open') marks.push({ d: 'M0 108L0 128', stroke: true });
-    }
-  } else if (pose === 'chest') {
-    if (hand === 'anjali') {
-      shapes.push(ell(-5, -40, 7, 19), ell(5, -40, 7, 19));
-      marks.push({ d: `${ell(-5, -40, 7, 19)} ${ell(5, -40, 7, 19)}`, stroke: true });
-      marks.push({ d: 'M0 -58L0 -22', stroke: true });
-    } else {
-      shapes.push(ell(-14, -34, 9, 15, 15), ell(14, -34, 9, 15, -15));
-      marks.push({ d: `${ell(-14, -34, 9, 15, 15)} ${ell(14, -34, 9, 15, -15)}`, stroke: true });
-    }
-  }
-  return { shapes, marks };
+    const yoni = hand === 'yoni' || hand === 'yoni-half';
+    parts.push(...handParts(new Pen({ at: yoni ? [0, 108] : [0, 114], k: 0.3 }), hand, false));
+  } else if (pose === 'chest') parts.push(...handParts(new Pen({ at: [0, -44], k: 0.34 }), hand, false));
+  return parts;
 }
 
 /* ------------------------------------------------------------------ the composed pose */
@@ -269,30 +218,34 @@ export interface PoseFigure {
   /** where the arms rest (for the side view and 3D) */
   armPose: ArmPose;
   legs: LegState;
-  /** true → draw the traced reference figure as is (Padmasana, hands on the knees) */
+  hand: HandShape;
+  palmUp: boolean;
+  /** true → draw the traced reference figure as is (Padmasana, Jnana / Chin on the knees) */
   traced: boolean;
-  /** drawn before the clipped torso (parts behind it) */
-  under: string[];
-  /** drawn after the clipped torso, in order */
-  over: string[];
-  /** small line/fill details: hand seals */
-  marks: { d: string; fill?: string; stroke?: boolean }[];
+  /** outlined parts back → front; TORSO marks where the traced torso goes */
+  parts: Part[];
   eyes: Eyes;
 }
 
-export function poseFigure(asanaId: AsanaId, mudraId: MudraId, override?: { legs?: LegState; armsAtKnees?: boolean; hand?: HandShape; eyes?: Eyes }): PoseFigure {
+export interface PoseOverride {
+  legs?: LegState;
+  armsAtKnees?: boolean;
+  hand?: HandShape;
+  eyes?: Eyes;
+}
+
+export function poseFigure(asanaId: AsanaId, mudraId: MudraId, override?: PoseOverride): PoseFigure {
   const asana = asanaById(asanaId);
   const mudra = mudraById(mudraId);
-  const finalLegs = asana.steps[asana.steps.length - 1].legs;
-  const legState = override?.legs ?? finalLegs;
+  const legState = override?.legs ?? asana.steps[asana.steps.length - 1].legs;
   const armPose: ArmPose = override?.armsAtKnees ? 'knees' : mudra.arms;
   const hand: HandShape = override?.hand ?? (override?.armsAtKnees ? 'open' : mudra.hand);
+  const palmUp = override?.armsAtKnees ? false : mudra.id !== 'jnana';
   const eyes: Eyes = override?.eyes ?? mudra.eyes ?? 'closed';
-  if (legState === 'padma' && armPose === 'knees') return { traced: true, under: [], over: [], marks: [], eyes, armPose, legs: legState };
+  const base = { eyes, armPose, legs: legState, hand, palmUp };
+  if (legState === 'padma' && armPose === 'knees' && hand === 'index-thumb') return { ...base, traced: true, parts: [] };
   const L = legs(legState);
-  const A = arms(armPose, L.knees, hand);
-  // arms resting in the lap or at the chest pass in front of the legs; arms on the knees too
-  return { traced: false, under: L.under, over: [...L.over, ...A.shapes], marks: A.marks, eyes, armPose, legs: legState };
+  return { ...base, traced: false, parts: [...L.back, { d: TORSO }, ...L.front, ...arms(armPose, L, hand, palmUp)] };
 }
 
 /** Patches that hide the traced closed eyes, and the open eyes drawn on top (Shambhavi). */

@@ -10,7 +10,7 @@ import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import { CHAKRAS, NADIS, PRANAS, type Chakra, type ChakraId, type PranaId } from '../data';
 import { SIDE_SPINE_POINTS } from '../figures/geometry';
-import { asanaById, mudraById, type AsanaId, type MudraId } from '../figures/pose';
+import { buildFigure } from './figure3d';
 import { useSettings } from '../lib/store';
 import { VAYU_PATHS } from '../engine/pranaFlow';
 import { dharanaFrame } from './dharana3d';
@@ -147,141 +147,13 @@ function omTexture(color: string) {
 /* ------------------------------------------------------------------ body */
 
 function Body({ dark }: { dark: boolean }) {
-  const mat = useGlass(dark, dark ? { base: '#1d1a52', rim: '#9fb0ff', alpha: 0.1 } : { base: '#f1e2c4', rim: '#9c6b22', alpha: 0.22 });
-  const torso = useMemo(() => {
-    // radius profile (figure units) from neck base to seat
-    const prof: [number, number][] = [
-      [8, -98],
-      [14, -86],
-      [52, -76],
-      [70, -64],
-      [72, -40],
-      [68, -10],
-      [60, 22],
-      [55, 52],
-      [60, 92],
-      [66, 128],
-      [58, 158],
-      [30, 176],
-      [0, 182],
-    ];
-    const g = new THREE.LatheGeometry(
-      prof.map(([r, y]) => new THREE.Vector2(r * S, -y * S)),
-      28,
-    );
-    g.scale(1, 1, 0.56);
-    g.translate(0, 0, 0.02);
-    return g;
-  }, []);
-  const tube = (pts: [number, number, number][], r: number) =>
-    new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts.map(([x, y, z]) => v3(x, y, z))), 24, r * S, 10, false);
+  const mat = useGlass(dark, dark ? { base: '#1d1a52', rim: '#9fb0ff', alpha: 0.08 } : { base: '#f1e2c4', rim: '#9c6b22', alpha: 0.2 });
   const asana = useSettings((st) => st.asana);
   const mudra = useSettings((st) => st.mudra);
-  const rig = useMemo(() => rig3d(asana, mudra), [asana, mudra]);
-  const parts = useMemo(() => rig.tubes.map(([pts, r]) => tube(pts, r)), [rig]); // eslint-disable-line react-hooks/exhaustive-deps
-  return (
-    <group renderOrder={1}>
-      <mesh geometry={torso} material={mat} />
-      {/* head */}
-      <mesh position={v3(0, -148, 6)} scale={[0.3, 0.47, 0.37]} material={mat}>
-        <sphereGeometry args={[1, 28, 20]} />
-      </mesh>
-      {/* nose hint */}
-      <mesh position={v3(0, -130, 44)} scale={[0.05, 0.1, 0.06]} material={mat}>
-        <sphereGeometry args={[1, 10, 8]} />
-      </mesh>
-      {/* neck */}
-      <mesh position={v3(0, -92, 2)} material={mat}>
-        <cylinderGeometry args={[0.13, 0.15, 0.24, 18, 1, true]} />
-      </mesh>
-      {parts.map((g, i) => (
-        <mesh key={i} geometry={g} material={mat} />
-      ))}
-      {/* rounded joints close the tube ends */}
-      {rig.joints.map(([x, y, z, r], i) => (
-        <mesh key={`j${i}`} position={v3(x, y, z)} scale={r * S} material={mat}>
-          <sphereGeometry args={[1, 16, 12]} />
-        </mesh>
-      ))}
-      {/* hands and feet */}
-      {rig.blobs.map(([x, y, z, sx, sy, sz, rx, rz], i) => (
-        <mesh key={`b${i}`} position={v3(x, y, z)} rotation={[rx, 0, rz]} scale={[sx, sy, sz]} material={mat}>
-          <sphereGeometry args={[1, 16, 10]} />
-        </mesh>
-      ))}
-    </group>
-  );
-}
-
-type V = [number, number, number];
-/** Limb layout of the 3D figure for the asana and mudra chosen in Settings (figure units, +z toward the viewer). */
-function rig3d(asanaId: AsanaId, mudraId: MudraId) {
-  const legs = asanaById(asanaId).steps.at(-1)!.legs;
-  const armPose = mudraById(mudraId).arms;
-  const tubes: [V[], number][] = [];
-  const joints: [number, number, number, number][] = [];
-  const blobs: [number, number, number, number, number, number, number, number][] = [];
-  const knees: Record<number, V> = {};
-  for (const s of [-1, 1]) {
-    // legs
-    if (legs === 'vajra') {
-      const knee: V = [s * 30, 168, 112];
-      tubes.push([[[s * 32, 150, 0], [s * 32, 162, 60], knee], 21]);
-      tubes.push([[[s * 30, 180, 110], [s * 34, 184, 40], [s * 26, 184, -30]], 14]);
-      joints.push([s * 32, 150, 0, 21], [knee[0], knee[1], knee[2], 21]);
-      blobs.push([s * 20, 180, -50, 0.08, 0.06, 0.2, 0, 0]);
-      knees[s] = knee;
-    } else {
-      const knee: V = [s * (legs === 'padma' ? 150 : 142), 166, 92];
-      tubes.push([[[s * 40, 150, 0], [s * 100, 160, 50], knee], 21]);
-      joints.push([s * 40, 150, 0, 21], [knee[0], knee[1], knee[2], 20]);
-      knees[s] = knee;
-      // shins: s = −1 is the figure's left leg (viewer's left)
-      let shin: V[];
-      let foot: V;
-      if (legs === 'padma' || (legs === 'ardha' && s === 1)) {
-        shin = [[s * 150, 166, 95], [s * 70, 150, 105], [-s * 50, 134, 78]];
-        foot = [-s * 62, 128, 70];
-      } else if (legs === 'ardha') {
-        shin = [[knee[0], 168, 95], [s * 60, 178, 104], [-s * 40, 178, 74]];
-        foot = [-s * 56, 178, 64];
-      } else {
-        // siddhasana: left heel at the perineum, right heel just above it
-        const y = s === -1 ? 172 : 156;
-        shin = [[knee[0], y - 4, 95], [s * 70, y, 106], [s * 8, y - 2, 84]];
-        foot = [-s * 10, y - 4, 82];
-      }
-      tubes.push([shin, 15]);
-      joints.push([shin[2][0], shin[2][1], shin[2][2], 15]);
-      blobs.push([foot[0], foot[1], foot[2], 0.2, 0.08, 0.1, 0.3, s * 0.35]);
-    }
-    // arms
-    const sh: V = [s * 66, -70, 0];
-    joints.push([sh[0], sh[1], sh[2], 13]);
-    if (armPose === 'knees') {
-      const k = knees[s];
-      const near = legs === 'vajra';
-      const hand: V = near ? [s * 36, 146, 92] : [k[0] - s * 14, 142, 58];
-      const elbow: V = near ? [s * 86, 30, 10] : [s * 118, 20, -6];
-      tubes.push([[sh, [s * 92, -36, -4], elbow], 12]);
-      tubes.push([[elbow, [(elbow[0] + hand[0]) / 2 + s * 6, 80, (elbow[2] + hand[2]) / 2], hand], 9.5]);
-      joints.push([elbow[0], elbow[1], elbow[2], 11]);
-      blobs.push([hand[0], hand[1] + 2, hand[2], 0.1, 0.13, 0.08, 0, 0]);
-    } else if (armPose === 'lap') {
-      const elbow: V = [s * 86, 40, 6];
-      tubes.push([[sh, [s * 86, -20, 0], elbow], 12]);
-      tubes.push([[elbow, [s * 60, 92, 46], [s * 20, 114, 62]], 9.5]);
-      joints.push([elbow[0], elbow[1], elbow[2], 11]);
-    } else {
-      const elbow: V = [s * 84, 10, 8];
-      tubes.push([[sh, [s * 88, -30, 0], elbow], 12]);
-      tubes.push([[elbow, [s * 50, -10, 48], [s * 10, -30, 62]], 9.5]);
-      joints.push([elbow[0], elbow[1], elbow[2], 11]);
-      blobs.push([s * 5, -44, 66, 0.05, 0.16, 0.08, 0, 0]);
-    }
-  }
-  if (armPose === 'lap') blobs.push([0, 116, 64, 0.3, 0.07, 0.15, 0, 0]);
-  return { tubes, joints, blobs };
+  // the whole figure — face, torso, limbs, feet and mudra hands — as one merged geometry
+  const geo = useMemo(() => buildFigure(asana, mudra), [asana, mudra]);
+  useEffect(() => () => geo.dispose(), [geo]);
+  return <mesh geometry={geo} material={mat} renderOrder={1} />;
 }
 
 /* ------------------------------------------------------------------ spine */

@@ -25,9 +25,10 @@ import {
 } from './geometry';
 
 import { useSettings } from '../lib/store';
-import { EYE_PATCHES, openEyes, poseFigure, sideArm, TORSO_MASK, type PoseFigure } from './pose';
+import { EYE_PATCHES, openEyes, poseFigure, sideArm, type PoseFigure } from './pose';
+import { PoseArt } from './PoseArt';
 
-export type BodyStyle = 'premium' | 'line';
+export type BodyStyle = 'premium' | 'line' | 'illus';
 
 /** The meditation pose chosen in Settings (front view). */
 export function useFrontPose(): PoseFigure {
@@ -75,8 +76,8 @@ export function Body({ view, look = 'premium', spine = true, pose }: { view: Fig
           {premium && <path d={SIDE_OUTLINE} fill={`url(#${id('shade')})`} />}
         </>
       ) : (
-        view === 'front' && !fp.traced ? (
-          <ComposedFront fp={fp} premium={premium} />
+        view === 'front' && (!fp.traced || look === 'illus') ? (
+          <PoseArt fp={fp} mode={look === 'illus' ? 'illus' : premium ? 'premium' : 'line'} />
         ) : (
           <>
             <path d={`${outline} ${holes.join(' ')}`} fillRule="evenodd" fill={fill} stroke={rim} strokeWidth={rimW} strokeLinejoin="round" />
@@ -88,25 +89,15 @@ export function Body({ view, look = 'premium', spine = true, pose }: { view: Fig
       <g fill="none" stroke={detail} strokeWidth={premium ? 0.9 : 1.1} strokeLinecap="round" strokeLinejoin="round">
         {view !== 'front' && (view === 'back' ? BACK_DETAILS : SIDE_DETAILS).map((d) => <path key={d} d={d} />)}
       </g>
-      {view === 'front' && (
+      {view === 'front' && fp.traced && look !== 'illus' && (
         <g>
           {/* traced line art: face, armpits, crossed legs, hands — exactly as in the reference figure */}
-          <g clipPath={fp.traced ? undefined : `url(#${id('torso')})`} mask={fp.eyes === 'closed' ? undefined : `url(#${id('eyes')})`}>
+          <g mask={fp.eyes === 'closed' ? undefined : `url(#${id('eyes')})`}>
             <path d={FRONT_LINEART} fill={premium ? 'var(--body-line)' : 'var(--text)'} fillRule="evenodd" />
           </g>
           <path d={FRONT_EARRINGS} fill="#d9a48c" fillRule="evenodd" />
           {fp.eyes !== 'closed' && <OpenEyes up={fp.eyes === 'up'} premium={premium} />}
-          {fp.marks.length > 0 && (
-            <g fill="none" stroke={premium ? 'var(--body-line)' : 'var(--text)'} strokeWidth={1.3} strokeLinecap="round" strokeLinejoin="round">
-              {fp.marks.map((m) => (
-                <path key={m.d} d={m.d} />
-              ))}
-            </g>
-          )}
           <defs>
-            <clipPath id={id('torso')}>
-              <path d={TORSO_MASK} />
-            </clipPath>
             <mask id={id('eyes')} maskUnits="userSpaceOnUse" x="-300" y="-300" width="600" height="600">
               <rect x="-300" y="-300" width="600" height="600" fill="#fff" />
               {EYE_PATCHES.map((d) => (
@@ -119,52 +110,6 @@ export function Body({ view, look = 'premium', spine = true, pose }: { view: Fig
 
       {view === 'side' && <SideInterior premium={premium} spine={spine} arm={sideArm(fp.armPose) || SIDE_ARM} />}
       {view !== 'side' && spine && <BackSpine faint={view === 'front'} />}
-    </g>
-  );
-}
-
-/**
- * A non-default pose: the traced head/torso plus generated limbs, merged into one silhouette.
- * Everything is drawn opaque inside a single translucent group so overlaps don't darken, and the
- * rim is stroked first then covered by the fills, leaving only the outer edge of the union.
- */
-function ComposedFront({ fp, premium }: { fp: PoseFigure; premium: boolean }) {
-  const id = useIds();
-  const all = [...fp.under, '__torso__', ...fp.over];
-  const shape = (d: string, props: Record<string, unknown>) =>
-    d === '__torso__' ? (
-      <path key={d} d={`${FRONT_OUTLINE} ${FRONT_ARM_GAPS.join(' ')}`} fillRule="evenodd" clipPath={`url(#${id('cut')})`} {...props} />
-    ) : (
-      <path key={d} d={d} {...props} />
-    );
-  if (!premium)
-    return (
-      <g>
-        <defs>
-          <clipPath id={id('cut')}>
-            <path d={TORSO_MASK} />
-          </clipPath>
-        </defs>
-        <g fill="none" stroke="var(--text)" strokeWidth={1.5} strokeLinejoin="round">
-          {all.map((d) => shape(d, {}))}
-        </g>
-      </g>
-    );
-  return (
-    <g style={{ opacity: 'var(--pose-alpha)' }}>
-      <defs>
-        <clipPath id={id('cut')}>
-          <path d={TORSO_MASK} />
-        </clipPath>
-        <linearGradient id={id('pskin')} x1="0" y1="-200" x2="0" y2="185" gradientUnits="userSpaceOnUse">
-          <stop offset="0" style={{ stopColor: 'var(--pose-skin-top)' }} />
-          <stop offset="1" style={{ stopColor: 'var(--pose-skin-bottom)' }} />
-        </linearGradient>
-      </defs>
-      <g fill="none" stroke="var(--pose-rim)" strokeWidth={2.6} strokeLinejoin="round">
-        {all.map((d) => shape(d, {}))}
-      </g>
-      <g fill={`url(#${id('pskin')})`}>{all.map((d) => shape(d, {}))}</g>
     </g>
   );
 }

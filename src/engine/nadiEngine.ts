@@ -9,7 +9,7 @@
  */
 import { CHAKRAS, NADIS } from '../data';
 import { braidPoints, CROSSINGS, FRONT_ARM_GAPS, FRONT_EARRINGS, FRONT_LINEART, FRONT_OUTLINE } from '../figures/geometry';
-import { EYE_PATCHES, openEyes, TORSO_MASK, type PoseFigure } from '../figures/pose';
+import { EYE_PATCHES, openEyes, TORSO, TORSO_MASK, type PoseFigure } from '../figures/pose';
 import { Drone } from './drone';
 import { SENSOR_SETS, targetAlignment, type SensorConf, type SensorCount } from './sensors';
 
@@ -118,7 +118,7 @@ export class NadiEngine {
   private earrings = new Path2D(FRONT_EARRINGS);
   /** meditation pose chosen in Settings; traced = the reference figure */
   private pose: PoseFigure | null = null;
-  private poseCache: { canvas: HTMLCanvasElement; key: string } | null = null;
+  private poseCache: { img: { fill: HTMLCanvasElement; lines: HTMLCanvasElement }; key: string } | null = null;
   private raf = 0;
   private last = 0;
   private time = 0;
@@ -143,40 +143,69 @@ export class NadiEngine {
     this.poseCache = null;
   }
 
-  /** Composite the non-default pose once (opaque, then drawn with one alpha so overlaps don't darken). */
-  private poseImage(): HTMLCanvasElement | null {
+  /**
+   * Composite the non-default pose once: an opaque fill (drawn later with one alpha so overlaps
+   * don't darken) and a line layer where each part first erases what it hides, then draws its outline.
+   */
+  private poseImage(): { fill: HTMLCanvasElement; lines: HTMLCanvasElement } | null {
     const fp = this.pose;
     if (!fp || fp.traced) return null;
     const k = this.s * this.dpr;
-    const key = `${k}`;
-    if (this.poseCache?.key === key) return this.poseCache.canvas;
-    const c = document.createElement('canvas');
-    c.width = Math.ceil(460 * k);
-    c.height = Math.ceil(420 * k);
-    const x = c.getContext('2d')!;
-    x.setTransform(k, 0, 0, k, 230 * k, 220 * k);
+    const key = `${k}|${this.theme.bodyLine}`;
+    if (this.poseCache?.key === key) return this.poseCache.img;
+    const mk = () => {
+      const c = document.createElement('canvas');
+      c.width = Math.ceil(460 * k);
+      c.height = Math.ceil(420 * k);
+      const x = c.getContext('2d')!;
+      x.setTransform(k, 0, 0, k, 230 * k, 220 * k);
+      return { c, x };
+    };
     const torso = new Path2D(`${FRONT_OUTLINE} ${FRONT_ARM_GAPS.join(' ')}`);
     const mask = new Path2D(TORSO_MASK);
-    const shapes = [...fp.under, '', ...fp.over];
-    const paint = (fn: (p: Path2D, torso: boolean) => void) =>
-      shapes.forEach((d) => {
-        if (d) return fn(new Path2D(d), false);
-        x.save();
-        x.clip(mask);
-        fn(torso, true);
-        x.restore();
-      });
-    x.strokeStyle = this.theme.poseRim;
-    x.lineWidth = 2.6;
-    x.lineJoin = 'round';
-    paint((p) => x.stroke(p));
-    const g = x.createLinearGradient(0, -200, 0, 185);
+    const eyes = new Path2D(`M-300 -300H300V300H-300Z ${EYE_PATCHES.join(' ')}`);
+    const F = mk(), Ln = mk();
+    const g = F.x.createLinearGradient(0, -200, 0, 185);
     g.addColorStop(0, this.theme.poseTop);
     g.addColorStop(1, this.theme.poseBottom);
-    x.fillStyle = g;
-    paint((p, t) => x.fill(p, t ? 'evenodd' : 'nonzero'));
-    this.poseCache = { canvas: c, key };
-    return c;
+    F.x.fillStyle = g;
+    const L = Ln.x;
+    L.strokeStyle = L.fillStyle = this.theme.bodyLine;
+    L.lineJoin = 'round';
+    L.lineCap = 'round';
+    for (const p of fp.parts) {
+      if (p.d === TORSO) {
+        F.x.save();
+        F.x.clip(mask);
+        F.x.fill(torso, 'evenodd');
+        F.x.restore();
+        L.save();
+        L.clip(mask);
+        L.globalCompositeOperation = 'destination-out';
+        L.fill(torso, 'evenodd');
+        L.globalCompositeOperation = 'source-over';
+        L.lineWidth = 1.05;
+        L.stroke(torso);
+        if (fp.eyes !== 'closed') L.clip(eyes, 'evenodd');
+        L.fill(this.lineArt, 'evenodd');
+        L.restore();
+        continue;
+      }
+      if (p.d) {
+        const path = new Path2D(p.d);
+        F.x.fill(path);
+        L.globalCompositeOperation = 'destination-out';
+        L.fill(path);
+        L.globalCompositeOperation = 'source-over';
+        L.lineWidth = 1.05;
+        L.stroke(path);
+      }
+      L.lineWidth = 0.85;
+      p.lines?.forEach((d) => L.stroke(new Path2D(d)));
+    }
+    const img = { fill: F.c, lines: Ln.c };
+    this.poseCache = { img, key };
+    return img;
   }
 
   private drawPoseFront() {
@@ -184,14 +213,9 @@ export class NadiEngine {
     const fp = this.pose!;
     const img = this.poseImage()!;
     ctx.globalAlpha = theme.poseAlpha;
-    ctx.drawImage(img, -230, -220, 460, 420);
+    ctx.drawImage(img.fill, -230, -220, 460, 420);
     ctx.globalAlpha = 1;
-    ctx.save();
-    ctx.clip(new Path2D(TORSO_MASK));
-    if (fp.eyes !== 'closed') ctx.clip(new Path2D(`M-300 -300H300V300H-300Z ${EYE_PATCHES.join(' ')}`), 'evenodd');
-    ctx.fillStyle = theme.bodyLine;
-    ctx.fill(this.lineArt, 'evenodd');
-    ctx.restore();
+    ctx.drawImage(img.lines, -230, -220, 460, 420);
     ctx.fillStyle = '#d9a48c';
     ctx.fill(this.earrings, 'evenodd');
     this.drawPoseDetails(fp);
@@ -203,8 +227,6 @@ export class NadiEngine {
     ctx.fillStyle = theme.bodyLine;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-    ctx.lineWidth = 1.3;
-    fp.marks.forEach((m) => ctx.stroke(new Path2D(m.d)));
     if (fp.eyes !== 'closed') {
       const e = openEyes(fp.eyes === 'up');
       ctx.lineWidth = 1;
