@@ -1,0 +1,234 @@
+{
+  "asanas": [
+    {
+      "id": "padmasana",
+      "name": "Padmasana",
+      "deva": "पद्मासन",
+      "english": "Lotus pose",
+      "about": "The classic seat for meditation: each foot rests on the opposite thigh, soles turned up, knees on the ground. It locks the base and holds the spine upright with little effort once the hips are open enough.",
+      "benefits": [
+        "Very stable base; the body can stay still for long sittings",
+        "Encourages an upright spine and a steady, even breath",
+        "Traditionally said to settle the mind and support prāṇāyāma"
+      ],
+      "caution": "Needs open hips. Never force the knees; if they lift or hurt, use Ardha Padmasana or Siddhasana instead.",
+      "steps": [
+        { "legs": "extended", "arms": "knees", "text": "Sit on a folded blanket with both legs extended and the spine tall." },
+        { "legs": "padma-half", "arms": "knees", "text": "Bend the right knee and place the right foot on the left thigh, sole up, heel close to the navel." },
+        { "legs": "padma", "arms": "knees", "text": "Bend the left knee and lift the left foot onto the right thigh, sole up." },
+        { "legs": "padma", "arms": "mudra", "text": "Rest the hands in your chosen mudra, lengthen the spine and relax the shoulders." }
+      ]
+    },
+    {
+      "id": "ardha-padmasana",
+      "name": "Ardha Padmasana",
+      "deva": "अर्ध पद्मासन",
+      "english": "Half lotus",
+      "about": "One foot rests on the opposite thigh while the other tucks beneath the knee. A gentler version of the lotus that keeps most of its stability.",
+      "benefits": [
+        "Stable and upright with less demand on the hips and knees",
+        "A step toward full Padmasana",
+        "Comfortable for medium-length sittings"
+      ],
+      "caution": "Alternate which leg is on top between sessions to keep the hips even. Avoid if the knee of the top leg strains.",
+      "steps": [
+        { "legs": "extended", "arms": "knees", "text": "Sit with both legs extended and the spine tall." },
+        { "legs": "ardha-tuck", "arms": "knees", "text": "Bend the left knee and tuck the left foot under the right thigh." },
+        { "legs": "ardha", "arms": "knees", "text": "Bend the right knee and place the right foot on the left thigh, sole up." },
+        { "legs": "ardha", "arms": "mudra", "text": "Settle both knees toward the floor, rest the hands in your mudra and lengthen the spine." }
+      ]
+    },
+    {
+      "id": "siddhasana",
+      "name": "Siddhasana",
+      "deva": "सिद्धासन",
+      "english": "Accomplished pose",
+      "about": "One heel presses at the perineum and the other heel rests just above it, the feet tucked between calf and thigh. Haṭha texts rank it among the foremost seats for meditation.",
+      "benefits": [
+        "Firm, symmetrical base with the spine naturally erect",
+        "Less hip rotation than Padmasana for many people",
+        "Haṭha tradition associates the heel placement with steadying the lower centres (Muladhara)"
+      ],
+      "caution": "Avoid pressing hard on the perineum; keep the pressure gentle. Not advised with sciatica or recent groin injury without guidance.",
+      "steps": [
+        { "legs": "extended", "arms": "knees", "text": "Sit with both legs extended." },
+        { "legs": "siddha-half", "arms": "knees", "text": "Bend the left knee and draw the left heel in to rest gently at the perineum." },
+        { "legs": "siddha", "arms": "knees", "text": "Bend the right knee and place the right heel just above the left, tucking the toes between calf and thigh." },
+        { "legs": "siddha", "arms": "mudra", "text": "Rest the hands in your mudra, keep the spine tall and the chin slightly drawn in." }
+      ]
+    },
+    {
+      "id": "vajrasana",
+      "name": "Vajrasana",
+      "deva": "वज्रासन",
+      "english": "Thunderbolt pose",
+      "about": "Kneeling with the knees together and sitting back on the heels. The simplest upright seat and a good choice when cross-legged postures are uncomfortable.",
+      "benefits": [
+        "Keeps the spine upright with almost no hip flexibility needed",
+        "Traditionally practised after meals as it is said to aid digestion",
+        "Easy to enter and leave"
+      ],
+      "caution": "Use a cushion between heels and buttocks if the knees or ankles complain. Avoid with knee injuries.",
+      "steps": [
+        { "legs": "kneel", "arms": "knees", "text": "Kneel on a soft mat with the knees together and the tops of the feet on the floor." },
+        { "legs": "vajra", "arms": "knees", "text": "Bring the big toes together, let the heels part slightly and sit back between them." },
+        { "legs": "vajra", "arms": "mudra", "text": "Rest the hands in your mudra on the thighs or in the lap, and lengthen the spine." }
+      ]
+    }
+  ],
+  "mudras": [
+    {
+      "id": "jnana",
+      "name": "Jnana Mudra",
+      "deva": "ज्ञान मुद्रा",
+      "english": "Seal of knowledge",
+      "arms": "knees",
+      "hand": "index-thumb",
+      "about": "The tip of the index finger touches the tip of the thumb; the other three fingers stay relaxed and extended. The hands rest on the knees, palms facing down.",
+      "benefits": [
+        "A calm, grounded hand position for long sittings",
+        "Palms down is traditionally described as introverting and settling",
+        "Keeps the arms relaxed and the shoulders even"
+      ],
+      "steps": [
+        { "hand": "open", "text": "Rest the hands on the knees, palms down, fingers relaxed." },
+        { "hand": "index-thumb", "text": "Curl each index finger to touch the tip of the thumb, forming a circle." },
+        { "hand": "index-thumb", "text": "Keep the other three fingers together and gently extended." }
+      ]
+    },
+    {
+      "id": "chin",
+      "name": "Chin Mudra",
+      "deva": "चिन् मुद्रा",
+      "english": "Seal of consciousness",
+      "arms": "knees",
+      "hand": "index-thumb",
+      "about": "The same finger seal as Jnana Mudra, with the palms turned up on the knees.",
+      "benefits": [
+        "Palms up is traditionally described as open and receptive",
+        "A light, uplifting variation of Jnana Mudra",
+        "Comfortable for breath-focused practice"
+      ],
+      "steps": [
+        { "hand": "open", "text": "Rest the backs of the hands on the knees, palms facing up." },
+        { "hand": "index-thumb", "text": "Touch the index fingertip to the thumb tip, forming a circle." },
+        { "hand": "index-thumb", "text": "Let the other three fingers extend softly." }
+      ]
+    },
+    {
+      "id": "dhyana",
+      "name": "Dhyana Mudra",
+      "deva": "ध्यान मुद्रा",
+      "english": "Seal of meditation",
+      "arms": "lap",
+      "hand": "dhyana",
+      "about": "The hands rest in the lap, palms up, the right hand on top of the left, and the thumb tips touch lightly to form an oval.",
+      "benefits": [
+        "Gathers attention to the centre of the body",
+        "Supports a soft, steady posture for long meditation",
+        "The touching thumbs give quick feedback when attention drifts"
+      ],
+      "steps": [
+        { "hand": "lap-open", "text": "Bring both hands to the lap, palms up, just below the navel." },
+        { "hand": "lap-stack", "text": "Rest the right hand on the left, fingers overlapping." },
+        { "hand": "dhyana", "text": "Let the thumb tips meet lightly above the palms, forming an oval." }
+      ]
+    },
+    {
+      "id": "bhairava",
+      "name": "Bhairava Mudra",
+      "deva": "भैरव मुद्रा",
+      "english": "Seal of Bhairava",
+      "arms": "lap",
+      "hand": "lap-stack",
+      "about": "The right hand rests in the left in the lap, both palms up, thumbs relaxed. (With the left hand on top it is called Bhairavi Mudra.)",
+      "benefits": [
+        "A simple, restful hand position",
+        "Balances both sides of the body in the lap",
+        "Easy to hold for long sittings"
+      ],
+      "steps": [
+        { "hand": "lap-open", "text": "Bring both hands into the lap, palms up." },
+        { "hand": "lap-stack", "text": "Place the right hand in the left palm and let the thumbs relax." }
+      ]
+    },
+    {
+      "id": "yoni",
+      "name": "Yoni Mudra",
+      "deva": "योनि मुद्रा",
+      "english": "Seal of the source",
+      "arms": "lap",
+      "hand": "yoni",
+      "about": "The fingers interlace; the index fingertips touch pointing down and the thumb tips touch pointing up, forming a diamond held at the lower abdomen. (Some Haṭha texts use the same name for the sense-closing practice also called Shanmukhi Mudra; this is the hand-seal form.)",
+      "benefits": [
+        "Turns attention inward, toward the lower centres",
+        "Joins both hands symmetrically at the body's centre",
+        "Often used before or during quiet breathing"
+      ],
+      "steps": [
+        { "hand": "lap-open", "text": "Bring the palms together in front of the lower abdomen." },
+        { "hand": "yoni-half", "text": "Interlace the middle, ring and little fingers." },
+        { "hand": "yoni", "text": "Touch the index fingertips pointing down and the thumb tips pointing up, forming a diamond." }
+      ]
+    },
+    {
+      "id": "anjali",
+      "name": "Anjali Mudra",
+      "deva": "अञ्जलि मुद्रा",
+      "english": "Salutation seal",
+      "arms": "chest",
+      "hand": "anjali",
+      "about": "The palms press together in front of the heart, fingers pointing up. Used to begin and end practice, and for prayer or chanting.",
+      "benefits": [
+        "Centres attention at the heart (Anahata)",
+        "Brings left and right sides together",
+        "A natural gesture of respect to begin a session"
+      ],
+      "steps": [
+        { "hand": "chest-open", "text": "Bring the hands up in front of the chest." },
+        { "hand": "anjali", "text": "Press the palms together evenly, thumbs lightly touching the sternum." }
+      ]
+    },
+    {
+      "id": "prana",
+      "name": "Prana Mudra",
+      "deva": "प्राण मुद्रा",
+      "english": "Seal of life force",
+      "arms": "knees",
+      "hand": "prana",
+      "about": "The tips of the ring and little fingers touch the tip of the thumb; the index and middle fingers stay extended. The hands rest on the knees, palms up.",
+      "benefits": [
+        "Traditionally associated with vitality and the energy of Prana",
+        "A steady, relaxed hand position",
+        "Often paired with breath awareness"
+      ],
+      "steps": [
+        { "hand": "open", "text": "Rest the hands on the knees, palms up." },
+        { "hand": "prana", "text": "Bring the ring and little fingertips to touch the thumb tip." },
+        { "hand": "prana", "text": "Keep the index and middle fingers extended and relaxed." }
+      ]
+    },
+    {
+      "id": "shambhavi",
+      "name": "Shambhavi Mudra",
+      "deva": "शाम्भवी मुद्रा",
+      "english": "Eyebrow-centre gaze",
+      "arms": "knees",
+      "hand": "index-thumb",
+      "eyes": "up",
+      "about": "A gaze rather than a hand seal: the eyes look gently up and inward toward the eyebrow centre (Ajna). The hands usually rest in Jnana or Chin Mudra on the knees.",
+      "benefits": [
+        "Directs attention to Ajna, the eyebrow centre",
+        "Steadies the gaze and, with it, the mind",
+        "Described in Haṭha texts as a powerful aid to concentration"
+      ],
+      "caution": "Hold only briefly at first and release at any eye strain; relax the eyes between rounds.",
+      "steps": [
+        { "eyes": "closed", "text": "Sit steadily with the hands in Jnana Mudra; close the eyes and relax the face." },
+        { "eyes": "open", "text": "Open the eyes softly and look straight ahead." },
+        { "eyes": "up", "text": "Without moving the head, raise the gaze up and inward toward the eyebrow centre." },
+        { "eyes": "closed", "text": "After a few breaths, release the gaze and close the eyes." }
+      ]
+    }
+  ]
+}

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type PointerEvent as RPointerEvent } from 'react';
+import { useFrontPose } from '../figures/Body';
 import { createPortal } from 'react-dom';
 import { ChevronLeft, PlayIcon, ResetIcon, StopIcon } from '../components/Icons';
 import { SensorAudioList } from '../components/SensorAudio';
@@ -97,6 +98,10 @@ export default function NadiHarmony() {
   useEffect(() => {
     engine.current?.readTheme();
   }, [theme]);
+  const pose = useFrontPose();
+  useEffect(() => {
+    engine.current?.setPose(pose);
+  }, [pose]);
   useEffect(() => {
     if (engine.current) engine.current.reduce = reduce;
   }, [reduce]);

@@ -48,6 +48,11 @@
   --body-detail: rgba(232, 234, 245, 0.55);
   --body-line: rgba(236, 238, 248, 0.6);
   --body-shade: rgba(0, 0, 0, 0);
+  /* opaque versions for composed meditation poses (drawn inside one translucent group) */
+  --pose-skin-top: rgb(200, 202, 214);
+  --pose-skin-bottom: rgb(180, 182, 196);
+  --pose-rim: rgb(240, 242, 252);
+  --pose-alpha: 0.18;
   --sushumna: #f5c451;
   --sushumna-core: #fff6dc;
   --aura-a: rgba(79, 227, 255, 0.16);
@@ -84,6 +89,10 @@
   --body-detail: rgba(55, 55, 62, 0.62);
   --body-line: rgba(50, 50, 58, 0.72);
   --body-shade: rgba(0, 0, 0, 0);
+  --pose-skin-top: rgb(150, 150, 156);
+  --pose-skin-bottom: rgb(140, 140, 146);
+  --pose-rim: rgb(95, 95, 104);
+  --pose-alpha: 0.32;
   --sushumna: #c8920f;
   --sushumna-core: #fff3c4;
   --aura-a: rgba(212, 160, 50, 0.2);

@@ -1,4 +1,5 @@
 import { DownloadIcon } from '../components/Icons';
+import { PosePicker } from '../components/PosePicker';
 import { TopBar, useInstall } from '../components/Shell';
 import { Section, Segmented, Toggle } from '../components/ui';
 import { useAudioClips } from '../engine/audioStore';
@@ -18,7 +19,7 @@ export default function Settings() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <TopBar title="Settings" subtitle="Appearance, motion, sound and data" />
+      <TopBar title="Settings" subtitle="Appearance, meditation pose, motion, sound and data" />
       <div className="scroll-y min-h-0 flex-1 px-4 pb-10 lg:px-6">
         <div className="mx-auto flex max-w-2xl flex-col gap-7">
           <Section title="Appearance">
@@ -31,6 +32,9 @@ export default function Settings() {
                 { value: 'light', label: 'Light · parchment' },
               ]}
             />
+          </Section>
+          <Section title="Meditation pose">
+            <PosePicker />
           </Section>
           <Section title="Motion">
             <Segmented<MotionPref>

@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { ChakraId, NadiId, PranaId } from '../data';
 import type { FigureView } from '../figures/geometry';
+import type { AsanaId, MudraId } from '../figures/pose';
 
 export type Theme = 'light' | 'dark';
 export type MotionPref = 'system' | 'reduce' | 'full';
@@ -18,6 +19,10 @@ interface Settings {
   homeView: FigureView;
   matrika: boolean;
   chantVoice: boolean;
+  asana: AsanaId;
+  mudra: MudraId;
+  setAsana: (a: AsanaId) => void;
+  setMudra: (m: MudraId) => void;
   setTheme: (t: Theme) => void;
   setMotion: (m: MotionPref) => void;
   toggleBookmark: (id: string) => void;
@@ -40,6 +45,10 @@ export const useSettings = create<Settings>()(
       homeView: 'front',
       matrika: false,
       chantVoice: true,
+      asana: 'padmasana',
+      mudra: 'jnana',
+      setAsana: (asana) => set({ asana }),
+      setMudra: (mudra) => set({ mudra }),
       setTheme: (theme) => set({ theme }),
       setMotion: (motion) => set({ motion }),
       toggleBookmark: (id) =>

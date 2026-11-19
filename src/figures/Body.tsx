@@ -1,4 +1,4 @@
-import { useId, type KeyboardEvent, type ReactNode } from 'react';
+import { useId, useMemo, type KeyboardEvent, type ReactNode } from 'react';
 import { CHAKRAS, type Chakra, type ChakraId } from '../data';
 import { Yantra } from '../yantras/Yantra';
 import {
@@ -24,7 +24,17 @@ import {
   type FigureView,
 } from './geometry';
 
+import { useSettings } from '../lib/store';
+import { EYE_PATCHES, openEyes, poseFigure, sideArm, TORSO_MASK, type PoseFigure } from './pose';
+
 export type BodyStyle = 'premium' | 'line';
+
+/** The meditation pose chosen in Settings (front view). */
+export function useFrontPose(): PoseFigure {
+  const asana = useSettings((s) => s.asana);
+  const mudra = useSettings((s) => s.mudra);
+  return useMemo(() => poseFigure(asana, mudra), [asana, mudra]);
+}
 
 const useIds = () => {
   const u = useId().replace(/[^a-zA-Z0-9]/g, '');
@@ -32,8 +42,10 @@ const useIds = () => {
 };
 
 /** The seated body for a given view. Draw inside an <svg> using the shared frame. */
-export function Body({ view, look = 'premium', spine = true }: { view: FigureView; look?: BodyStyle; spine?: boolean }) {
+export function Body({ view, look = 'premium', spine = true, pose }: { view: FigureView; look?: BodyStyle; spine?: boolean; pose?: PoseFigure }) {
   const id = useIds();
+  const chosen = useFrontPose();
+  const fp = pose ?? chosen;
   const premium = look === 'premium';
   const fill = premium ? `url(#${id('skin')})` : 'none';
   const rim = premium ? 'var(--body-rim)' : 'var(--text)';
@@ -63,10 +75,14 @@ export function Body({ view, look = 'premium', spine = true }: { view: FigureVie
           {premium && <path d={SIDE_OUTLINE} fill={`url(#${id('shade')})`} />}
         </>
       ) : (
-        <>
-          <path d={`${outline} ${holes.join(' ')}`} fillRule="evenodd" fill={fill} stroke={rim} strokeWidth={rimW} strokeLinejoin="round" />
-          {premium && <path d={`${outline} ${holes.join(' ')}`} fillRule="evenodd" fill={`url(#${id('shade')})`} />}
-        </>
+        view === 'front' && !fp.traced ? (
+          <ComposedFront fp={fp} premium={premium} />
+        ) : (
+          <>
+            <path d={`${outline} ${holes.join(' ')}`} fillRule="evenodd" fill={fill} stroke={rim} strokeWidth={rimW} strokeLinejoin="round" />
+            {premium && <path d={`${outline} ${holes.join(' ')}`} fillRule="evenodd" fill={`url(#${id('shade')})`} />}
+          </>
+        )
       )}
 
       <g fill="none" stroke={detail} strokeWidth={premium ? 0.9 : 1.1} strokeLinecap="round" strokeLinejoin="round">
@@ -75,18 +91,100 @@ export function Body({ view, look = 'premium', spine = true }: { view: FigureVie
       {view === 'front' && (
         <g>
           {/* traced line art: face, armpits, crossed legs, hands — exactly as in the reference figure */}
-          <path d={FRONT_LINEART} fill={premium ? 'var(--body-line)' : 'var(--text)'} fillRule="evenodd" />
+          <g clipPath={fp.traced ? undefined : `url(#${id('torso')})`} mask={fp.eyes === 'closed' ? undefined : `url(#${id('eyes')})`}>
+            <path d={FRONT_LINEART} fill={premium ? 'var(--body-line)' : 'var(--text)'} fillRule="evenodd" />
+          </g>
           <path d={FRONT_EARRINGS} fill="#d9a48c" fillRule="evenodd" />
+          {fp.eyes !== 'closed' && <OpenEyes up={fp.eyes === 'up'} premium={premium} />}
+          {fp.marks.length > 0 && (
+            <g fill="none" stroke={premium ? 'var(--body-line)' : 'var(--text)'} strokeWidth={1.3} strokeLinecap="round" strokeLinejoin="round">
+              {fp.marks.map((m) => (
+                <path key={m.d} d={m.d} />
+              ))}
+            </g>
+          )}
+          <defs>
+            <clipPath id={id('torso')}>
+              <path d={TORSO_MASK} />
+            </clipPath>
+            <mask id={id('eyes')} maskUnits="userSpaceOnUse" x="-300" y="-300" width="600" height="600">
+              <rect x="-300" y="-300" width="600" height="600" fill="#fff" />
+              {EYE_PATCHES.map((d) => (
+                <path key={d} d={d} fill="#000" />
+              ))}
+            </mask>
+          </defs>
         </g>
       )}
 
-      {view === 'side' && <SideInterior premium={premium} spine={spine} />}
+      {view === 'side' && <SideInterior premium={premium} spine={spine} arm={sideArm(fp.armPose) || SIDE_ARM} />}
       {view !== 'side' && spine && <BackSpine faint={view === 'front'} />}
     </g>
   );
 }
 
-function SideInterior({ premium, spine }: { premium: boolean; spine: boolean }) {
+/**
+ * A non-default pose: the traced head/torso plus generated limbs, merged into one silhouette.
+ * Everything is drawn opaque inside a single translucent group so overlaps don't darken, and the
+ * rim is stroked first then covered by the fills, leaving only the outer edge of the union.
+ */
+function ComposedFront({ fp, premium }: { fp: PoseFigure; premium: boolean }) {
+  const id = useIds();
+  const all = [...fp.under, '__torso__', ...fp.over];
+  const shape = (d: string, props: Record<string, unknown>) =>
+    d === '__torso__' ? (
+      <path key={d} d={`${FRONT_OUTLINE} ${FRONT_ARM_GAPS.join(' ')}`} fillRule="evenodd" clipPath={`url(#${id('cut')})`} {...props} />
+    ) : (
+      <path key={d} d={d} {...props} />
+    );
+  if (!premium)
+    return (
+      <g>
+        <defs>
+          <clipPath id={id('cut')}>
+            <path d={TORSO_MASK} />
+          </clipPath>
+        </defs>
+        <g fill="none" stroke="var(--text)" strokeWidth={1.5} strokeLinejoin="round">
+          {all.map((d) => shape(d, {}))}
+        </g>
+      </g>
+    );
+  return (
+    <g style={{ opacity: 'var(--pose-alpha)' }}>
+      <defs>
+        <clipPath id={id('cut')}>
+          <path d={TORSO_MASK} />
+        </clipPath>
+        <linearGradient id={id('pskin')} x1="0" y1="-200" x2="0" y2="185" gradientUnits="userSpaceOnUse">
+          <stop offset="0" style={{ stopColor: 'var(--pose-skin-top)' }} />
+          <stop offset="1" style={{ stopColor: 'var(--pose-skin-bottom)' }} />
+        </linearGradient>
+      </defs>
+      <g fill="none" stroke="var(--pose-rim)" strokeWidth={2.6} strokeLinejoin="round">
+        {all.map((d) => shape(d, {}))}
+      </g>
+      <g fill={`url(#${id('pskin')})`}>{all.map((d) => shape(d, {}))}</g>
+    </g>
+  );
+}
+
+function OpenEyes({ up, premium }: { up: boolean; premium: boolean }) {
+  const e = openEyes(up);
+  const ink = premium ? 'var(--body-line)' : 'var(--text)';
+  return (
+    <g>
+      {e.whites.map((d) => (
+        <path key={d} d={d} fill="none" stroke={ink} strokeWidth={1} />
+      ))}
+      {e.irises.map((d) => (
+        <path key={d} d={d} fill={ink} />
+      ))}
+    </g>
+  );
+}
+
+function SideInterior({ premium, spine, arm }: { premium: boolean; spine: boolean; arm: string }) {
   return (
     <g>
       {/* brain */}
@@ -101,7 +199,7 @@ function SideInterior({ premium, spine }: { premium: boolean; spine: boolean }) 
       {spine && <Vertebrae />}
       {/* near arm, translucent so the spine stays visible */}
       <path
-        d={SIDE_ARM}
+        d={arm}
         fill={premium ? 'color-mix(in oklab, var(--body-top) 55%, transparent)' : 'none'}
         stroke={premium ? 'var(--body-rim)' : 'var(--text)'}
         strokeWidth={premium ? 0.9 : 1.2}
