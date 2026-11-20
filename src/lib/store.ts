@@ -24,6 +24,13 @@ interface Settings {
   /** bandhas switched on (Prāṇāyāma) */
   bandhas: Record<'mula' | 'uddiyana' | 'jalandhara', boolean>;
   setBandha: (id: 'mula' | 'uddiyana' | 'jalandhara', on: boolean) => void;
+  /** per-prāṇāyāma ratio and seconds per count */
+  pranayamaPrefs: Record<string, { ratio: number[]; unit: number }>;
+  setPranayamaPref: (id: string, pref: { ratio: number[]; unit: number } | null) => void;
+  /** practice log by local date (YYYY-MM-DD) */
+  practiceLog: Record<string, { sets: number; counts: number; seconds: number }>;
+  logPractice: (sets: number, counts: number, seconds: number) => void;
+  clearPracticeLog: () => void;
   setAsana: (a: AsanaId) => void;
   setMudra: (m: MudraId) => void;
   setTheme: (t: Theme) => void;
@@ -52,6 +59,23 @@ export const useSettings = create<Settings>()(
       mudra: 'jnana',
       bandhas: { mula: false, uddiyana: false, jalandhara: false },
       setBandha: (id, on) => set((st) => ({ bandhas: { ...st.bandhas, [id]: on } })),
+      pranayamaPrefs: {},
+      setPranayamaPref: (id, pref) =>
+        set((st) => {
+          const next = { ...st.pranayamaPrefs };
+          if (pref) next[id] = pref;
+          else delete next[id];
+          return { pranayamaPrefs: next };
+        }),
+      practiceLog: {},
+      logPractice: (sets, counts, seconds) =>
+        set((st) => {
+          const d = new Date();
+          const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+          const cur = st.practiceLog[key] ?? { sets: 0, counts: 0, seconds: 0 };
+          return { practiceLog: { ...st.practiceLog, [key]: { sets: cur.sets + sets, counts: cur.counts + counts, seconds: cur.seconds + seconds } } };
+        }),
+      clearPracticeLog: () => set({ practiceLog: {} }),
       setAsana: (asana) => set({ asana }),
       setMudra: (mudra) => set({ mudra }),
       setTheme: (theme) => set({ theme }),

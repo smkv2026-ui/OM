@@ -36,8 +36,19 @@ export default function Pranayama() {
   const on = useSettings((s) => s.bandhas);
   const setBandha = useSettings((s) => s.setBandha);
   const [prId, setPrId] = useState(PRANAYAMAS[0].id);
-  const pr = PRANAYAMAS.find((p) => p.id === prId)!;
-  const [unit, setUnit] = useState(pr.unit);
+  const base = PRANAYAMAS.find((p) => p.id === prId)!;
+  // your own ratio and seconds per count, saved per prāṇāyāma
+  const pref = useSettings((s) => s.pranayamaPrefs[prId]);
+  const setPref = useSettings((s) => s.setPranayamaPref);
+  const logPractice = useSettings((s) => s.logPractice);
+  const ratio = pref?.ratio ?? base.phases.map((p) => p.units);
+  const unit = pref?.unit ?? base.unit;
+  const ratioKey = ratio.join(':');
+  const pr = useMemo<Pr>(() => ({ ...base, phases: base.phases.map((p, i) => ({ ...p, units: ratio[i] ?? p.units })) }), [base, ratioKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  const setRatio = (i: number, v: number) => setPref(prId, { ratio: ratio.map((r, j) => (j === i ? v : r)), unit });
+  const setUnit = (u: number) => setPref(prId, { ratio, unit: u });
+  const isDefault = !pref;
+  const [target, setTarget] = useState(0);
   const [sound, setSound] = useState(true);
   const [playing, setPlaying] = useState(false);
   const [t, setT] = useState(0);
@@ -50,15 +61,15 @@ export default function Pranayama() {
   const eng = engagedNow(pr, ph && playing ? ph : null, on);
 
   // animation loop
-  const live = useRef({ pr, unit, on, sound, holdLocks, sys, t: 0, last: -1 });
-  live.current = { ...live.current, pr, unit, on, sound, holdLocks };
+  const live = useRef({ pr, unit, on, sound, holdLocks, sys, t: 0, last: -1, sets: 0, target, log: logPractice });
+  live.current = { ...live.current, pr, unit, on, sound, holdLocks, target, log: logPractice };
   useEffect(() => {
     if (!playing) return;
     let raf = 0;
     let prev = performance.now();
     const tick = (now: number) => {
       const L = live.current;
-      const dt = Math.min(0.1, (now - prev) / 1000);
+      const dt = Math.min(0.5, (now - prev) / 1000); // keeps real time through slow frames; a hidden tab pauses rAF
       prev = now;
       L.t += dt;
       const P = phaseAt(L.pr, L.unit, L.t);
@@ -68,6 +79,20 @@ export default function Pranayama() {
         L.last = key;
       }
       L.sys = stepSystem(L.sys, P.kind, P.p, dt, engagedNow(L.pr, P, L.on), L.holdLocks);
+      if (P.sets > L.sets) {
+        // a set finished: log it, and stop at the target
+        const n = P.sets - L.sets;
+        L.log(n, n * L.pr.phases.reduce((a, ph) => a + ph.units, 0), n * P.setLength);
+        L.sets = P.sets;
+        if (L.target > 0 && P.sets >= L.target) {
+          if (L.sound) playTone(660, 1.2, 0.1);
+          L.t = P.sets * P.setLength;
+          setT(L.t);
+          setSys(L.sys);
+          setPlaying(false);
+          return;
+        }
+      }
       setT(L.t);
       setSys(L.sys);
       raf = requestAnimationFrame(tick);
@@ -81,10 +106,13 @@ export default function Pranayama() {
     live.current.t = 0;
     live.current.last = -1;
     live.current.sys = initialSystem();
+    live.current.sets = 0;
     setT(0);
     setSys(initialSystem());
   };
-  useEffect(reset, [prId, unit]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(reset, [prId, unit, ratioKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  const reachedTarget = target > 0 && (ph?.sets ?? 0) >= target && !playing;
+  const countsPerSet = pr.phases.reduce((a, p) => a + p.units, 0);
 
   const anyOn = on.mula || on.uddiyana || on.jalandhara;
   const allOn = on.mula && on.uddiyana && on.jalandhara;
@@ -116,14 +144,27 @@ export default function Pranayama() {
         {guidance(ph, pr, on, eng)}
       </p>
       <div className="flex flex-wrap items-center gap-2">
-        <button className="btn btn-gold !rounded-full" onClick={() => setPlaying(!playing)} aria-pressed={playing}>
-          {playing ? <StopIcon size={14} /> : <PlayIcon size={14} />} {playing ? 'Pause' : t > 0 ? 'Resume' : 'Start'}
+        <button
+          className="btn btn-gold !rounded-full"
+          onClick={() => {
+            if (reachedTarget) reset();
+            setPlaying(!playing);
+          }}
+          aria-pressed={playing}
+        >
+          {playing ? <StopIcon size={14} /> : <PlayIcon size={14} />} {playing ? 'Pause' : reachedTarget ? 'Again' : t > 0 ? 'Resume' : 'Start'}
         </button>
         <button className="btn !rounded-full" onClick={reset} disabled={t === 0}>
           <ResetIcon size={14} /> Reset
         </button>
-        <span className="glass ml-auto rounded-full px-3 py-1.5 text-sm" aria-live="polite">
-          Sets <strong className="tabular-nums text-gold">{ph?.sets ?? 0}</strong>
+        <span className="glass ml-auto flex gap-3 rounded-full px-3 py-1.5 text-sm" aria-live="polite">
+          <span>
+            Sets <strong className="tabular-nums text-gold">{ph?.sets ?? 0}</strong>
+            {target > 0 && <span className="text-faint">/{target}</span>}
+          </span>
+          <span>
+            Counts <strong className="tabular-nums text-gold">{Math.floor(t / unit)}</strong>
+          </span>
         </span>
       </div>
 
@@ -158,18 +199,50 @@ export default function Pranayama() {
         <Meter label="Suṣumṇā activation (builds over sets)" v={sys.sushumna} color="#f3c35b" />
       </Section>
 
-      <Section title="Timing">
-        <div className="flex items-center gap-3">
-          <span className="w-28 shrink-0 text-sm text-muted">1 count = {unit} s</span>
-          <Slider label="Seconds per count" min={1} max={10} value={unit} onChange={setUnit} valueText={`${unit} seconds per count`} />
+      <Section
+        title="Ratio & timing"
+        aside={
+          !isDefault && (
+            <button className="text-xs text-accent-ink underline" onClick={() => setPref(prId, null)}>
+              Reset to {base.phases.map((p) => p.units).join(' : ')}
+            </button>
+          )
+        }
+      >
+        <div className="grid grid-cols-2 gap-2" role="group" aria-label="Ratio in counts">
+          {pr.phases.map((p, i) => (
+            <Stepper
+              key={i}
+              label={PHASE_NAME[p.kind].name}
+              color={PHASE_COLOR[p.kind]}
+              value={p.units}
+              min={p.kind === 'inhale' || p.kind === 'exhale' ? 1 : 0}
+              max={32}
+              onChange={(v) => setRatio(i, v)}
+              sub={`${fmt(p.units * unit)}`}
+            />
+          ))}
         </div>
-        <p className="text-xs text-faint">
-          {pr.phases.map((p) => `${PHASE_NAME[p.kind].name} ${p.units * unit}s`).join(' · ')} · one set {pr.phases.reduce((a, p) => a + p.units, 0) * unit}s
+        <div className="flex items-center gap-3">
+          <Stepper label="Seconds per count" value={unit} min={1} max={30} onChange={setUnit} sub="1 count" wide />
+          <div className="min-w-0 flex-1">
+            <Slider label="Seconds per count" min={1} max={15} value={Math.min(15, unit)} onChange={setUnit} valueText={`${unit} seconds per count`} />
+          </div>
+        </div>
+        <p className="text-sm text-muted">
+          {pr.phases.map((p) => p.units).join(' : ')} × {unit}s ={' '}
+          <span className="text-text">{pr.phases.map((p) => `${fmt(p.units * unit)} ${PHASE_NAME[p.kind].name.toLowerCase()}`).join(' · ')}</span> · one set {fmt(countsPerSet * unit)} ({countsPerSet} counts)
         </p>
+        <div className="flex items-center gap-3">
+          <Stepper label="Target sets" value={target} min={0} max={200} onChange={setTarget} sub={target ? `≈ ${fmt(target * countsPerSet * unit)}` : 'no limit'} wide />
+          <p className="text-xs text-faint">Stops with a chime after this many sets (0 = keep going).</p>
+        </div>
         <div className="glass rounded-xl px-3">
           <Toggle id="pr-sound" label="Soft tone at each phase change" checked={sound} onChange={setSound} />
         </div>
       </Section>
+
+      <Practice session={{ sets: ph?.sets ?? 0, counts: Math.floor(t / unit), seconds: t }} />
 
       <Section title={pr.name}>
         <p className="text-xs text-faint">
@@ -441,11 +514,16 @@ function PhaseDial({ pr, unit, ph }: { pr: Pr; unit: number; ph: PhaseState | nu
         <text y={-6} textAnchor="middle" fontSize={12} fill={ph ? PHASE_COLOR[ph.kind] : 'var(--muted)'} fontWeight={600}>
           {ph ? PHASE_NAME[ph.kind].name : 'Ready'}
         </text>
-        <text y={14} textAnchor="middle" fontSize={18} fill="var(--text)" className="tabular-nums">
+        <text y={14} textAnchor="middle" fontSize={ph ? 18 : 14} fill="var(--text)" className="tabular-nums">
           {ph ? Math.ceil(ph.left) : pr.phases.map((p) => p.units).join(':')}
         </text>
         {ph && (
-          <text y={28} textAnchor="middle" fontSize={7.5} fill="var(--faint)">
+          <text y={26} textAnchor="middle" fontSize={8} fill="var(--muted)" className="tabular-nums">
+            count {ph.count} of {pr.phases[ph.index].units}
+          </text>
+        )}
+        {ph && (
+          <text y={36} textAnchor="middle" fontSize={6.5} fill="var(--faint)">
             {PHASE_NAME[ph.kind].sa}
           </text>
         )}
@@ -456,12 +534,100 @@ function PhaseDial({ pr, unit, ph }: { pr: Pr; unit: number; ph: PhaseState | nu
             <span className="h-2 w-2 rounded-full" style={{ background: PHASE_COLOR[p.kind] }} />
             <span className="w-24">{PHASE_NAME[p.kind].name}</span>
             <span className="tabular-nums text-faint">
-              {p.units} · {p.units * unit}s
+              {p.units} · {fmt(p.units * unit)}
             </span>
           </li>
         ))}
       </ol>
     </div>
+  );
+}
+
+const fmt = (sec: number) => (sec >= 60 ? `${Math.floor(sec / 60)}m${sec % 60 ? ` ${Math.round(sec % 60)}s` : ''}` : `${Math.round(sec)}s`);
+
+function Stepper({ label, value, min, max, onChange, sub, color, wide }: { label: string; value: number; min: number; max: number; onChange: (v: number) => void; sub?: string; color?: string; wide?: boolean }) {
+  const set = (v: number) => onChange(Math.max(min, Math.min(max, Math.round(v) || 0)));
+  return (
+    <div className={`glass flex flex-col items-center gap-1 rounded-xl px-1.5 py-2 ${wide ? 'w-[132px] shrink-0' : ''}`}>
+      <span className="flex items-center gap-1 text-[0.7rem] text-muted">
+        {color && <span className="h-2 w-2 rounded-full" style={{ background: color }} />}
+        {label}
+      </span>
+      <div className="flex items-center gap-1">
+        <button className="btn btn-icon !h-8 !min-h-8 !w-8 !min-w-8 !rounded-full !p-0" onClick={() => set(value - 1)} disabled={value <= min} aria-label={`${label}: less`}>
+          −
+        </button>
+        <input
+          type="number"
+          inputMode="numeric"
+          min={min}
+          max={max}
+          value={value}
+          onChange={(e) => set(Number(e.target.value))}
+          aria-label={label}
+          className="h-8 w-10 rounded-lg border border-line bg-transparent text-center text-base text-text tabular-nums"
+        />
+        <button className="btn btn-icon !h-8 !min-h-8 !w-8 !min-w-8 !rounded-full !p-0" onClick={() => set(value + 1)} disabled={value >= max} aria-label={`${label}: more`}>
+          +
+        </button>
+      </div>
+      {sub && <span className="text-[0.66rem] text-faint tabular-nums">{sub}</span>}
+    </div>
+  );
+}
+
+/** Sets and counts done: this session, today and all time, with the last seven days. */
+function Practice({ session }: { session: { sets: number; counts: number; seconds: number } }) {
+  const log = useSettings((s) => s.practiceLog);
+  const clear = useSettings((s) => s.clearPracticeLog);
+  const key = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const today = log[key(new Date())] ?? { sets: 0, counts: 0, seconds: 0 };
+  const all = Object.values(log).reduce((a, d) => ({ sets: a.sets + d.sets, counts: a.counts + d.counts, seconds: a.seconds + d.seconds }), { sets: 0, counts: 0, seconds: 0 });
+  const days = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (6 - i));
+    return { label: d.toLocaleDateString(undefined, { weekday: 'narrow' }), sets: log[key(d)]?.sets ?? 0 };
+  });
+  const peak = Math.max(1, ...days.map((d) => d.sets));
+  const cell = (title: string, v: { sets: number; counts: number; seconds: number }, extra?: string) => (
+    <div className="glass rounded-xl px-2.5 py-2">
+      <p className="text-[0.68rem] text-faint">{title}</p>
+      <p className="text-lg leading-tight tabular-nums text-text">
+        {v.sets} <span className="text-xs text-muted">sets</span>
+      </p>
+      <p className="text-xs tabular-nums text-muted">
+        {v.counts} counts · {fmt(Math.round(v.seconds))}
+      </p>
+      {extra && <p className="text-[0.66rem] text-faint">{extra}</p>}
+    </div>
+  );
+  return (
+    <Section
+      title="Practice"
+      aside={
+        all.sets > 0 && (
+          <button className="text-xs text-faint underline" onClick={() => confirm('Clear your practice history on this device?') && clear()}>
+            Clear history
+          </button>
+        )
+      }
+    >
+      <div className="grid grid-cols-3 gap-2">
+        {cell('This session', session)}
+        {cell('Today', today)}
+        {cell('All time', all, `${Object.keys(log).length} day${Object.keys(log).length === 1 ? '' : 's'}`)}
+      </div>
+      <div className="flex items-end gap-1.5" role="img" aria-label={`Sets in the last seven days: ${days.map((d) => d.sets).join(', ')}`}>
+        {days.map((d, i) => (
+          <div key={i} className="flex flex-1 flex-col items-center gap-1">
+            <span className="text-[0.62rem] tabular-nums text-faint">{d.sets || ''}</span>
+            <div className="w-full rounded-t" style={{ height: 4 + (d.sets / peak) * 36, background: i === 6 ? 'var(--gold)' : 'color-mix(in oklab, var(--gold) 45%, transparent)' }} />
+            <span className="text-[0.62rem] text-faint">{d.label}</span>
+          </div>
+        ))}
+      </div>
+      <p className="text-xs text-faint">A set is logged each time a full round finishes; counts are the beats of the ratio (one count = your seconds per count). Kept only on this device.</p>
+    </Section>
   );
 }
 

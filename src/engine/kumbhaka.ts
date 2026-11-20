@@ -60,18 +60,23 @@ export interface PhaseState {
   /** completed sets */
   sets: number;
   setLength: number;
+  /** which count of the phase is running (1-based, in ratio units) */
+  count: number;
 }
 
 export function phaseAt(pr: Pranayama, unit: number, t: number): PhaseState {
   const lens = pr.phases.map((ph) => ph.units * unit);
-  const setLength = lens.reduce((a, b) => a + b, 0);
+  const setLength = Math.max(0.001, lens.reduce((a, b) => a + b, 0));
   const sets = Math.floor(t / setLength);
   let r = t - sets * setLength;
+  // phases of zero length (a hold switched off) are skipped
+  const last = lens.reduce((k, l, i) => (l > 0 ? i : k), 0);
   for (let i = 0; i < lens.length; i++) {
-    if (r < lens[i] || i === lens.length - 1) return { index: i, kind: pr.phases[i].kind, p: Math.min(1, r / lens[i]), left: Math.max(0, lens[i] - r), sets, setLength };
+    if (lens[i] > 0 && (r < lens[i] || i === last))
+      return { index: i, kind: pr.phases[i].kind, p: Math.min(1, r / lens[i]), left: Math.max(0, lens[i] - r), sets, setLength, count: Math.min(pr.phases[i].units, Math.floor(r / unit) + 1) };
     r -= lens[i];
   }
-  throw new Error('unreachable');
+  return { index: last, kind: pr.phases[last].kind, p: 1, left: 0, sets, setLength, count: pr.phases[last].units };
 }
 
 /** Bandhas applied right now: the ones the phase calls for, among those switched on. */
