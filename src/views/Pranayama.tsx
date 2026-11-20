@@ -1,0 +1,489 @@
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { PlayIcon, ResetIcon, StopIcon } from '../components/Icons';
+import { TopBar } from '../components/Shell';
+import { Section, Segmented, Slider, Toggle } from '../components/ui';
+import { playTone } from '../engine/audioContext';
+import {
+  BANDHAS,
+  bandhaById,
+  engagedNow,
+  initialSystem,
+  LOCK_Y,
+  makeSeeds,
+  particle,
+  PHASE_NAME,
+  phaseAt,
+  PRANAYAMAS,
+  stepSystem,
+  type BandhaId,
+  type PhaseKind,
+  type PhaseState,
+  type Pranayama as Pr,
+  type SystemState,
+} from '../engine/kumbhaka';
+import { Body, Sushumna } from '../figures/Body';
+import { useIsDesktop, useReducedMotion } from '../lib/hooks';
+import { navigate } from '../lib/router';
+import { useSettings } from '../lib/store';
+
+const SEEDS = makeSeeds(64);
+const TONE: Record<PhaseKind, number> = { inhale: 528, 'hold-in': 396, exhale: 432, 'hold-out': 352 };
+const PHASE_COLOR: Record<PhaseKind, string> = { inhale: '#4fe3ff', 'hold-in': '#f3c35b', exhale: '#c9a7ff', 'hold-out': '#ff8a5c' };
+
+export default function Pranayama() {
+  const desktop = useIsDesktop();
+  const reduce = useReducedMotion();
+  const on = useSettings((s) => s.bandhas);
+  const setBandha = useSettings((s) => s.setBandha);
+  const [prId, setPrId] = useState(PRANAYAMAS[0].id);
+  const pr = PRANAYAMAS.find((p) => p.id === prId)!;
+  const [unit, setUnit] = useState(pr.unit);
+  const [sound, setSound] = useState(true);
+  const [playing, setPlaying] = useState(false);
+  const [t, setT] = useState(0);
+  const [sys, setSys] = useState<SystemState>(initialSystem);
+  const ph: PhaseState | null = playing || t > 0 ? phaseAt(pr, unit, t) : null;
+
+  // locks of the internal hold decide which prāṇa leaks (and stays lost through the exhale)
+  const holdIdx = pr.phases.findIndex((p) => p.kind === 'hold-in');
+  const holdLocks = useMemo(() => new Set(pr.phases[holdIdx].bandhas.filter((b) => on[b])), [pr, holdIdx, on]);
+  const eng = engagedNow(pr, ph && playing ? ph : null, on);
+
+  // animation loop
+  const live = useRef({ pr, unit, on, sound, holdLocks, sys, t: 0, last: -1 });
+  live.current = { ...live.current, pr, unit, on, sound, holdLocks };
+  useEffect(() => {
+    if (!playing) return;
+    let raf = 0;
+    let prev = performance.now();
+    const tick = (now: number) => {
+      const L = live.current;
+      const dt = Math.min(0.1, (now - prev) / 1000);
+      prev = now;
+      L.t += dt;
+      const P = phaseAt(L.pr, L.unit, L.t);
+      const key = P.sets * 10 + P.index;
+      if (key !== L.last) {
+        if (L.sound) playTone(TONE[P.kind], 0.5, 0.09);
+        L.last = key;
+      }
+      L.sys = stepSystem(L.sys, P.kind, P.p, dt, engagedNow(L.pr, P, L.on), L.holdLocks);
+      setT(L.t);
+      setSys(L.sys);
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [playing]);
+
+  const reset = () => {
+    setPlaying(false);
+    live.current.t = 0;
+    live.current.last = -1;
+    live.current.sys = initialSystem();
+    setT(0);
+    setSys(initialSystem());
+  };
+  useEffect(reset, [prId, unit]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const anyOn = on.mula || on.uddiyana || on.jalandhara;
+  const allOn = on.mula && on.uddiyana && on.jalandhara;
+
+  const stage = (
+    <div className={`relative mx-auto aspect-[430/404] ${desktop ? 'w-full max-w-[640px]' : 'h-full max-w-full'}`}>
+      <svg viewBox="-215 -212 430 404" className="h-full w-full" role="img" aria-label={`Seated figure: ${ph ? PHASE_NAME[ph.kind].name : 'ready'}; bandhas ${[...eng].map((b) => bandhaById(b).name).join(', ') || 'off'}`}>
+        <Body view="front" spine={false} />
+        <Sushumna view="front" />
+        <Front ph={ph} sys={sys} eng={eng} holdLocks={holdLocks} time={t} reduce={reduce} playing={playing} />
+      </svg>
+      <div className="glass absolute top-1 left-1 w-[27%] rounded-xl p-1" aria-hidden="true">
+        <svg viewBox="-150 -212 300 404" className="w-full">
+          <Body view="side" spine={false} />
+          <SideLocks eng={eng} />
+        </svg>
+        <p className="text-center text-[0.6rem] text-faint">side · how each lock acts</p>
+      </div>
+    </div>
+  );
+
+  const controls = (
+    <div className="flex flex-col gap-5">
+      {PRANAYAMAS.length > 1 && (
+        <Segmented<string> label="Prāṇāyāma" value={prId} onChange={setPrId} options={PRANAYAMAS.map((p) => ({ value: p.id, label: p.name }))} />
+      )}
+      <PhaseDial pr={pr} unit={unit} ph={ph} />
+      <p className="min-h-[3.2em] text-sm text-muted" aria-live="polite">
+        {guidance(ph, pr, on, eng)}
+      </p>
+      <div className="flex flex-wrap items-center gap-2">
+        <button className="btn btn-gold !rounded-full" onClick={() => setPlaying(!playing)} aria-pressed={playing}>
+          {playing ? <StopIcon size={14} /> : <PlayIcon size={14} />} {playing ? 'Pause' : t > 0 ? 'Resume' : 'Start'}
+        </button>
+        <button className="btn !rounded-full" onClick={reset} disabled={t === 0}>
+          <ResetIcon size={14} /> Reset
+        </button>
+        <span className="glass ml-auto rounded-full px-3 py-1.5 text-sm" aria-live="polite">
+          Sets <strong className="tabular-nums text-gold">{ph?.sets ?? 0}</strong>
+        </span>
+      </div>
+
+      <Section title="Bandhas" aside={<span className="text-xs text-faint">{anyOn ? 'applied in the holds' : 'off'}</span>}>
+        <div className="grid grid-cols-3 gap-2" role="group" aria-label="Bandhas">
+          {BANDHAS.map((b) => (
+            <button
+              key={b.id}
+              aria-pressed={on[b.id]}
+              onClick={() => setBandha(b.id, !on[b.id])}
+              className="glass flex flex-col items-center gap-0.5 rounded-xl px-2 py-2 text-center"
+              style={on[b.id] ? { borderColor: b.color, boxShadow: `0 0 0 1px ${b.color} inset, 0 0 18px -6px ${b.color}` } : undefined}
+            >
+              <span className="h-2.5 w-2.5 rounded-full" style={{ background: b.color, opacity: on[b.id] ? 1 : 0.35 }} />
+              <span className="text-sm leading-tight">{b.name}</span>
+              <span className="text-[0.66rem] text-faint">{on[b.id] ? 'on' : 'off'}</span>
+            </button>
+          ))}
+        </div>
+        <button className="btn !min-h-9 self-start !rounded-full text-xs" onClick={() => BANDHAS.forEach((b) => setBandha(b.id, !allOn))}>
+          {allOn ? 'Switch all off' : 'All three · Mahā Bandha'}
+        </button>
+        <p className="text-xs text-faint">
+          Mūla and Jālandhara hold in both retentions; Uḍḍīyāna only with the breath held out. Switch a bandha on to see where it locks; start the breath to see how it changes the flow.
+        </p>
+      </Section>
+
+      <Section title="System">
+        <Meter label="Breath in the lungs" v={sys.volume} color="#4fe3ff" />
+        <Meter label="Prāṇa held (not leaking)" v={sys.retained} color="#05dda1" />
+        <Meter label="Prāṇa–apāna union at the navel" v={sys.navel} color="#ffb020" />
+        <Meter label="Suṣumṇā activation (builds over sets)" v={sys.sushumna} color="#f3c35b" />
+      </Section>
+
+      <Section title="Timing">
+        <div className="flex items-center gap-3">
+          <span className="w-28 shrink-0 text-sm text-muted">1 count = {unit} s</span>
+          <Slider label="Seconds per count" min={1} max={10} value={unit} onChange={setUnit} valueText={`${unit} seconds per count`} />
+        </div>
+        <p className="text-xs text-faint">
+          {pr.phases.map((p) => `${PHASE_NAME[p.kind].name} ${p.units * unit}s`).join(' · ')} · one set {pr.phases.reduce((a, p) => a + p.units, 0) * unit}s
+        </p>
+        <div className="glass rounded-xl px-3">
+          <Toggle id="pr-sound" label="Soft tone at each phase change" checked={sound} onChange={setSound} />
+        </div>
+      </Section>
+
+      <Section title={pr.name}>
+        <p className="text-xs text-faint">
+          <span className="font-deva">{pr.deva}</span> · {pr.english}
+        </p>
+        <p className="text-sm text-muted">{pr.about}</p>
+        <ul className="list-disc pl-5 text-sm text-muted">
+          {pr.benefits.map((b) => (
+            <li key={b}>{b}</li>
+          ))}
+        </ul>
+        <Caution text={pr.caution} />
+      </Section>
+
+      <Section title="The three locks">
+        {BANDHAS.map((b) => (
+          <details key={b.id} className="glass rounded-xl px-3 py-2" open={on[b.id]}>
+            <summary className="flex cursor-pointer items-center gap-2 text-sm">
+              <span className="h-2.5 w-2.5 rounded-full" style={{ background: b.color }} />
+              {b.name} <span className="font-deva text-muted">{b.deva}</span> <span className="text-xs text-faint">· {b.english}</span>
+            </summary>
+            <div className="mt-2 flex flex-col gap-1.5 text-sm text-muted">
+              <p>
+                <strong className="text-text">Where · </strong>
+                {b.region}
+              </p>
+              <p>
+                <strong className="text-text">How · </strong>
+                {b.action}
+              </p>
+              <p>
+                <strong className="text-text">What it locks · </strong>
+                {b.locks}
+              </p>
+              <p>
+                <strong className="text-text">When · </strong>
+                {b.phases}
+              </p>
+              <ul className="list-disc pl-5">
+                {b.benefits.map((x) => (
+                  <li key={x}>{x}</li>
+                ))}
+              </ul>
+              <Caution text={b.caution} />
+            </div>
+          </details>
+        ))}
+      </Section>
+    </div>
+  );
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col">
+      <TopBar
+        title="Prāṇāyāma"
+        subtitle="Breath retention with the bandhas"
+        actions={
+          <button className="btn !min-h-10 !rounded-full text-xs" onClick={() => navigate('/prana')}>
+            Prāṇa vāyus
+          </button>
+        }
+      />
+      {desktop ? (
+        <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_420px] gap-6 px-6 pb-6">
+          <div className="flex min-h-0 items-center justify-center">{stage}</div>
+          <div className="scroll-y min-h-0 pr-1">{controls}</div>
+        </div>
+      ) : (
+        <>
+          <div className="h-[42vh] shrink-0 px-2">{stage}</div>
+          <div className="scroll-y min-h-0 flex-1 px-4 pt-2 pb-28">{controls}</div>
+        </>
+      )}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ guidance */
+
+function guidance(ph: PhaseState | null, pr: Pr, on: Record<BandhaId, boolean>, eng: Set<BandhaId>): string {
+  const names = (ids: BandhaId[]) => ids.map((b) => bandhaById(b).name).join(' and ');
+  if (!ph) {
+    const ids = (Object.keys(on) as BandhaId[]).filter((b) => on[b]);
+    return ids.length
+      ? `${names(ids)} switched on — the glowing area shows where each one locks. Press Start to breathe ${pr.phases.map((p) => p.units).join(' : ')}.`
+      : `Press Start to breathe ${pr.phases.map((p) => p.units).join(' : ')} (inhale : hold in : exhale : hold out). Switch bandhas on to seal the prāṇa during the holds.`;
+  }
+  const e = [...eng];
+  switch (ph.kind) {
+    case 'inhale':
+      return 'Inhale slowly and fully through the nose — prāṇa fills the chest and abdomen. (Release any lock and lift the head first.)';
+    case 'hold-in':
+      return e.length
+        ? `Hold the breath in. ${names(e)} ${e.length > 1 ? 'seal' : 'seals'} the prāṇa: ${eng.has('jalandhara') ? 'nothing rises out through the throat' : 'the throat is open, so some prāṇa rises and escapes'}; ${eng.has('mula') ? 'apāna is turned up from the pelvic floor' : 'without Mūla some apāna sinks away'}.${on.uddiyana ? ' Uḍḍīyāna waits for the external hold.' : ''}`
+        : 'Hold the breath in, without locks — watch some of the prāṇa leak away up through the throat and down through the pelvic floor.';
+    case 'exhale':
+      return 'Release the locks, raise the head, and exhale slowly and completely through the nose.';
+    case 'hold-out':
+      return e.length
+        ? `Hold the breath out. ${names(e)}${eng.has('uddiyana') ? ' — the abdomen is drawn in and up, lifting the energy from the navel along Suṣumṇā' : ''}.`
+        : 'Hold the breath out, relaxed. (With Uḍḍīyāna and Mūla on, the energy would be drawn up Suṣumṇā here.)';
+  }
+}
+
+/* ------------------------------------------------------------------ figure overlays */
+
+function Front({ ph, sys, eng, holdLocks, time, reduce, playing }: { ph: PhaseState | null; sys: SystemState; eng: Set<BandhaId>; holdLocks: Set<BandhaId>; time: number; reduce: boolean; playing: boolean }) {
+  const v = ph ? sys.volume : 0.5;
+  const lung = 0.55 + 0.45 * v;
+  const sparks = ph && playing && !reduce && (ph.kind === 'hold-in' || ph.kind === 'hold-out') && sys.sushumna > 0.02 && (eng.has('mula') || eng.has('uddiyana'));
+  const from = ph?.kind === 'hold-out' ? 172 : 48;
+  return (
+    <g>
+      <defs>
+        {BANDHAS.map((b) => (
+          <radialGradient key={b.id} id={`bg-${b.id}`}>
+            <stop offset="0" stopColor={b.color} stopOpacity="0.85" />
+            <stop offset="0.55" stopColor={b.color} stopOpacity="0.35" />
+            <stop offset="1" stopColor={b.color} stopOpacity="0" />
+          </radialGradient>
+        ))}
+        <radialGradient id="bg-navel">
+          <stop offset="0" stopColor="#fff3c4" stopOpacity="1" />
+          <stop offset="0.4" stopColor="#ffb020" stopOpacity="0.7" />
+          <stop offset="1" stopColor="#ff6a00" stopOpacity="0" />
+        </radialGradient>
+        <filter id="sush-glow" x="-200%" y="-10%" width="500%" height="120%">
+          <feGaussianBlur stdDeviation="3" />
+        </filter>
+      </defs>
+      {/* lungs */}
+      {[-1, 1].map((s) => (
+        <ellipse key={s} cx={s * 27} cy={-36} rx={22 * lung} ry={36 * lung} fill="#4fe3ff" fillOpacity={0.05 + 0.1 * v} stroke="#4fe3ff" strokeOpacity={0.25} strokeWidth={0.8} />
+      ))}
+      {/* Suṣumṇā activation */}
+      {sys.sushumna > 0.01 && (
+        <g opacity={0.25 + 0.75 * sys.sushumna}>
+          <line x1={0} y1={176} x2={0} y2={176 - 366 * Math.min(1, 0.15 + sys.sushumna)} stroke="#ffd36a" strokeWidth={7} filter="url(#sush-glow)" />
+          <line x1={0} y1={176} x2={0} y2={176 - 366 * Math.min(1, 0.15 + sys.sushumna)} stroke="#fff6dc" strokeWidth={1.6} />
+        </g>
+      )}
+      {/* prāṇa–apāna union at the navel */}
+      {sys.navel > 0.02 && <circle cx={0} cy={48} r={10 + 26 * sys.navel} fill="url(#bg-navel)" opacity={sys.navel} />}
+      {/* bandha glows and locks */}
+      {BANDHAS.map((b) => (eng.has(b.id) ? <FrontLock key={b.id} id={b.id} pulse={reduce ? 1 : 0.8 + 0.2 * Math.sin(time * 4)} /> : null))}
+      {/* sparks rising in Suṣumṇā */}
+      {sparks &&
+        Array.from({ length: 7 }, (_, k) => {
+          const f = (time * (0.25 + sys.sushumna * 0.5) + k / 7) % 1;
+          const y = from - f * (from + 190);
+          return <circle key={k} cx={0} cy={y} r={2.6} fill="#fff3c4" opacity={(1 - f) * (0.4 + sys.sushumna)} />;
+        })}
+      {/* prāṇa particles */}
+      {ph && !reduce &&
+        SEEDS.map((q, i) => {
+          const P = particle(q, ph.kind, ph.p, time, holdLocks);
+          if (!P) return null;
+          return <circle key={i} cx={P.x} cy={P.y} r={2.3} fill={P.leak ? '#ff2a6d' : '#7fe6ff'} opacity={P.o * 0.9} />;
+        })}
+      {ph && reduce && (ph.kind === 'hold-in' || ph.kind === 'inhale') && <circle cx={0} cy={-10} r={40 * v} fill="#7fe6ff" opacity={0.12} />}
+    </g>
+  );
+}
+
+function FrontLock({ id, pulse }: { id: BandhaId; pulse: number }) {
+  const b = bandhaById(id);
+  const y = LOCK_Y[id];
+  const label = (x: number, yy: number) => (
+    <text x={x} y={yy} fontSize={11} fill={b.color} fontWeight={600}>
+      {b.name}
+    </text>
+  );
+  if (id === 'mula')
+    return (
+      <g opacity={pulse}>
+        <ellipse cx={0} cy={y + 2} rx={40} ry={14} fill={`url(#bg-${id})`} />
+        <line x1={-26} x2={26} y1={y} y2={y} stroke={b.color} strokeWidth={3} strokeLinecap="round" />
+        <path d={`M0 ${y + 12}L0 ${y - 4}M-5 ${y + 1}L0 ${y - 5}L5 ${y + 1}`} stroke={b.color} strokeWidth={1.8} fill="none" strokeLinecap="round" />
+        {label(30, y + 18)}
+      </g>
+    );
+  if (id === 'uddiyana')
+    return (
+      <g opacity={pulse}>
+        <ellipse cx={0} cy={y + 8} rx={50} ry={40} fill={`url(#bg-${id})`} />
+        {[-1, 1].map((s) => (
+          <path key={s} d={`M${s * 60} ${y + 14}L${s * 40} ${y + 8}M${s * 46} ${y + 2}L${s * 40} ${y + 8}L${s * 47} ${y + 13}`} stroke={b.color} strokeWidth={2} fill="none" strokeLinecap="round" />
+        ))}
+        <path d={`M0 ${y + 34}L0 ${y - 12}M-5 ${y - 5}L0 ${y - 12}L5 ${y - 5}`} stroke={b.color} strokeWidth={2} fill="none" strokeLinecap="round" />
+        {label(56, y + 34)}
+      </g>
+    );
+  return (
+    <g opacity={pulse}>
+      <ellipse cx={0} cy={y} rx={26} ry={13} fill={`url(#bg-${id})`} />
+      <line x1={-16} x2={16} y1={y} y2={y} stroke={b.color} strokeWidth={3} strokeLinecap="round" />
+      {label(28, y - 6)}
+    </g>
+  );
+}
+
+/** Side view: where each lock acts, with arrows for the movement. */
+function SideLocks({ eng }: { eng: Set<BandhaId> }) {
+  const arrow = (d: string, c: string) => <path d={d} stroke={c} strokeWidth={3} fill="none" strokeLinecap="round" strokeLinejoin="round" />;
+  return (
+    <g>
+      <defs>
+        {BANDHAS.map((b) => (
+          <radialGradient key={b.id} id={`sg-${b.id}`}>
+            <stop offset="0" stopColor={b.color} stopOpacity="0.9" />
+            <stop offset="1" stopColor={b.color} stopOpacity="0" />
+          </radialGradient>
+        ))}
+      </defs>
+      {eng.has('mula') && (
+        <g>
+          <ellipse cx={12} cy={172} rx={24} ry={11} fill="url(#sg-mula)" />
+          {arrow('M12 196L12 170M5 178L12 170L19 178', bandhaById('mula').color)}
+        </g>
+      )}
+      {eng.has('uddiyana') && (
+        <g>
+          <ellipse cx={-26} cy={46} rx={26} ry={34} fill="url(#sg-uddiyana)" />
+          {arrow('M-70 52L-38 50M-46 43L-38 50L-46 57', bandhaById('uddiyana').color)}
+          {arrow('M-24 74L-24 22M-31 30L-24 22L-17 30', bandhaById('uddiyana').color)}
+        </g>
+      )}
+      {eng.has('jalandhara') && (
+        <g>
+          <ellipse cx={-12} cy={-92} rx={20} ry={12} fill="url(#sg-jalandhara)" />
+          {arrow('M-52 -124L-40 -104M-49 -108L-40 -104L-39 -114', bandhaById('jalandhara').color)}
+        </g>
+      )}
+    </g>
+  );
+}
+
+/* ------------------------------------------------------------------ dial + meters */
+
+function PhaseDial({ pr, unit, ph }: { pr: Pr; unit: number; ph: PhaseState | null }) {
+  const total = pr.phases.reduce((a, p) => a + p.units, 0);
+  const R = 46, C = 2 * Math.PI * R;
+  let acc = 0;
+  const done = ph ? (pr.phases.slice(0, ph.index).reduce((a, p) => a + p.units, 0) + ph.p * pr.phases[ph.index].units) / total : 0;
+  return (
+    <div className="flex items-center gap-4">
+      <svg viewBox="-60 -60 120 120" className="h-32 w-32 shrink-0" role="img" aria-label={ph ? `${PHASE_NAME[ph.kind].name}, ${Math.ceil(ph.left)} seconds left` : 'Ready'}>
+        <g transform="rotate(-90)">
+          {pr.phases.map((p, i) => {
+            const len = (p.units / total) * C;
+            const el = (
+              <circle
+                key={i}
+                r={R}
+                fill="none"
+                stroke={PHASE_COLOR[p.kind]}
+                strokeOpacity={ph?.index === i ? 1 : 0.35}
+                strokeWidth={ph?.index === i ? 9 : 6}
+                strokeDasharray={`${Math.max(0, len - 2.5)} ${C}`}
+                strokeDashoffset={-acc}
+              />
+            );
+            acc += len;
+            return el;
+          })}
+          {ph && <circle r={R} cx={0} cy={0} fill="none" stroke="var(--text)" strokeWidth={1.2} strokeDasharray={`${done * C} ${C}`} opacity={0.6} />}
+        </g>
+        {ph && <circle cx={Math.cos(done * 2 * Math.PI - Math.PI / 2) * R} cy={Math.sin(done * 2 * Math.PI - Math.PI / 2) * R} r={4.5} fill="var(--text)" />}
+        <text y={-6} textAnchor="middle" fontSize={12} fill={ph ? PHASE_COLOR[ph.kind] : 'var(--muted)'} fontWeight={600}>
+          {ph ? PHASE_NAME[ph.kind].name : 'Ready'}
+        </text>
+        <text y={14} textAnchor="middle" fontSize={18} fill="var(--text)" className="tabular-nums">
+          {ph ? Math.ceil(ph.left) : pr.phases.map((p) => p.units).join(':')}
+        </text>
+        {ph && (
+          <text y={28} textAnchor="middle" fontSize={7.5} fill="var(--faint)">
+            {PHASE_NAME[ph.kind].sa}
+          </text>
+        )}
+      </svg>
+      <ol className="flex flex-col gap-1 text-sm">
+        {pr.phases.map((p, i) => (
+          <li key={i} className="flex items-center gap-2" style={{ color: ph?.index === i ? 'var(--text)' : 'var(--muted)' }}>
+            <span className="h-2 w-2 rounded-full" style={{ background: PHASE_COLOR[p.kind] }} />
+            <span className="w-24">{PHASE_NAME[p.kind].name}</span>
+            <span className="tabular-nums text-faint">
+              {p.units} · {p.units * unit}s
+            </span>
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
+function Meter({ label, v, color }: { label: string; v: number; color: string }) {
+  return (
+    <div>
+      <div className="mb-1 flex justify-between text-xs text-muted">
+        <span>{label}</span>
+        <span className="tabular-nums">{Math.round(v * 100)}%</span>
+      </div>
+      <div className="h-2 overflow-hidden rounded-full" style={{ background: 'var(--border)' }} role="meter" aria-label={label} aria-valuenow={Math.round(v * 100)} aria-valuemin={0} aria-valuemax={100}>
+        <div className="h-full rounded-full" style={{ width: `${v * 100}%`, background: color }} />
+      </div>
+    </div>
+  );
+}
+
+function Caution({ text }: { text: string }) {
+  return (
+    <p className="rounded-lg px-2.5 py-1.5 text-xs" style={{ background: 'color-mix(in oklab, var(--magenta) 10%, transparent)', color: 'var(--muted)' }}>
+      <strong className="text-text">Caution · </strong>
+      {text}
+    </p>
+  );
+}

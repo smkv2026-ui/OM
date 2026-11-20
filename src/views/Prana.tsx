@@ -10,6 +10,7 @@ import { Body, ChakraGlyphs, IdaPingala, Sushumna, type BodyStyle } from '../fig
 import { smoothPath } from '../figures/geometry';
 import { useIsDesktop, useReducedMotion } from '../lib/hooks';
 import { openNadi, openPrana, useSettings } from '../lib/store';
+import { navigate } from '../lib/router';
 
 const VB = PRANA_VIEWBOX;
 const PHASE_LABEL: Record<Phase, string> = { inhale: 'Inhale', hold: 'Pause', exhale: 'Exhale', rest: 'Pause' };
@@ -169,7 +170,15 @@ export default function Prana() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <TopBar title="Prāṇa Vāyus" subtitle="The five vital breaths — Praśna Upaniṣad, Third Question" />
+      <TopBar
+        title="Prāṇa Vāyus"
+        subtitle="The five vital breaths — Praśna Upaniṣad, Third Question"
+        actions={
+          <button className="btn btn-gold !min-h-10 shrink-0 !rounded-full !px-3 text-xs" onClick={() => navigate('/pranayama')} title="Kumbhaka with Mūla, Uḍḍīyāna and Jālandhara bandhas">
+            Prāṇāyāma<span className="hidden sm:inline"> · Bandhas</span>
+          </button>
+        }
+      />
       <div className="relative flex min-h-0 flex-1">
         <div ref={stage} className={`relative flex min-h-0 min-w-0 flex-1 items-center justify-center ${desktop ? '' : 'pb-[76px]'}`}>
           <div ref={box} className="relative">

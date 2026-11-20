@@ -21,6 +21,9 @@ interface Settings {
   chantVoice: boolean;
   asana: AsanaId;
   mudra: MudraId;
+  /** bandhas switched on (Prāṇāyāma) */
+  bandhas: Record<'mula' | 'uddiyana' | 'jalandhara', boolean>;
+  setBandha: (id: 'mula' | 'uddiyana' | 'jalandhara', on: boolean) => void;
   setAsana: (a: AsanaId) => void;
   setMudra: (m: MudraId) => void;
   setTheme: (t: Theme) => void;
@@ -47,6 +50,8 @@ export const useSettings = create<Settings>()(
       chantVoice: true,
       asana: 'padmasana',
       mudra: 'jnana',
+      bandhas: { mula: false, uddiyana: false, jalandhara: false },
+      setBandha: (id, on) => set((st) => ({ bandhas: { ...st.bandhas, [id]: on } })),
       setAsana: (asana) => set({ asana }),
       setMudra: (mudra) => set({ mudra }),
       setTheme: (theme) => set({ theme }),

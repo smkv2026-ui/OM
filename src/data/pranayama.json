@@ -1,0 +1,93 @@
+{
+  "bandhas": [
+    {
+      "id": "mula",
+      "name": "Mūla Bandha",
+      "deva": "मूल बन्ध",
+      "english": "Root lock",
+      "color": "#ff4d6d",
+      "region": "Perineum / pelvic floor (Mūlādhāra)",
+      "action": "Gently contract and lift the pelvic floor at the perineum, drawing it up and in.",
+      "locks": "Stops apāna (the downward breath) from escaping below and turns it upward, toward the navel.",
+      "phases": "Held in both internal and external retention.",
+      "benefits": [
+        "Steadies the base of the spine and the seat",
+        "Turns apāna upward to meet prāṇa at the navel",
+        "Haṭha texts describe it as rousing energy at Mūlādhāra"
+      ],
+      "caution": "Use a light contraction, not a strain. Avoid during menstruation, pregnancy or with pelvic-floor conditions without guidance."
+    },
+    {
+      "id": "uddiyana",
+      "name": "Uḍḍīyāna Bandha",
+      "deva": "उड्डीयान बन्ध",
+      "english": "Upward-flying lock",
+      "color": "#ffb020",
+      "region": "Abdomen, navel to the diaphragm (Maṇipūra)",
+      "action": "After a full exhalation, draw the abdomen in toward the spine and up under the ribs.",
+      "locks": "Lifts the diaphragm and draws the united prāṇa-apāna from the navel up into Suṣumṇā.",
+      "phases": "Only in external retention (breath held out), never with the lungs full.",
+      "benefits": [
+        "Massages the abdominal organs; traditionally said to kindle the digestive fire (agni)",
+        "Lifts energy from the navel toward the heart",
+        "Called in Haṭha texts the lion that conquers the elephant of death"
+      ],
+      "caution": "Only on an empty stomach and with the breath held out. Avoid with high blood pressure, heart conditions, hernia, ulcers, pregnancy or recent abdominal surgery."
+    },
+    {
+      "id": "jalandhara",
+      "name": "Jālandhara Bandha",
+      "deva": "जालन्धर बन्ध",
+      "english": "Throat lock",
+      "color": "#5aa9ff",
+      "region": "Throat (Viśuddha)",
+      "action": "Lengthen the back of the neck and lower the chin toward the top of the breastbone; lift the chest slightly to meet it.",
+      "locks": "Seals the throat so prāṇa does not rise and escape upward during retention, and protects the head from pressure.",
+      "phases": "Held in both internal and external retention; release it before breathing again.",
+      "benefits": [
+        "Keeps retention comfortable by sealing the airway",
+        "Traditionally said to calm the heart and the mind",
+        "Contains prāṇa below the throat during the hold"
+      ],
+      "caution": "Do not strain the neck. Lift the head fully before inhaling or exhaling. Avoid with cervical spine problems."
+    }
+  ],
+  "pranayamas": [
+    {
+      "id": "kumbhaka-1422",
+      "name": "Kumbhaka Prāṇāyāma",
+      "deva": "कुम्भक प्राणायाम",
+      "english": "Breath retention, 1 : 4 : 2 : 2",
+      "about": "Inhale for one count, hold the breath in (antara kumbhaka) for four, exhale for two and hold the breath out (bāhya kumbhaka) for two, then repeat. During the holds the bandhas seal prāṇa inside: Mūla and Jālandhara during the internal hold, all three (Mahā Bandha) during the external hold.",
+      "benefits": [
+        "Lengthens and steadies the breath; trains calm during retention",
+        "With the bandhas, joins prāṇa and apāna at the navel and directs them into Suṣumṇā",
+        "Traditionally prepares the mind for concentration (dhāraṇā)"
+      ],
+      "caution": "Build up slowly: start with a short count and few rounds, never strain or gasp. Stop if dizzy. Avoid long holds with high blood pressure, heart or lung conditions or in pregnancy; learn retention with a qualified teacher.",
+      "unit": 4,
+      "phases": [
+        { "kind": "inhale", "units": 1, "bandhas": [] },
+        { "kind": "hold-in", "units": 4, "bandhas": ["mula", "jalandhara"] },
+        { "kind": "exhale", "units": 2, "bandhas": [] },
+        { "kind": "hold-out", "units": 2, "bandhas": ["mula", "uddiyana", "jalandhara"] }
+      ]
+    },
+    {
+      "id": "sama-vritti",
+      "name": "Sama Vṛtti",
+      "deva": "सम वृत्ति",
+      "english": "Even breath, 1 : 1 : 1 : 1",
+      "about": "Equal counts for inhalation, internal hold, exhalation and external hold — a gentle introduction to retention. Bandhas may be added in the holds as in Kumbhaka Prāṇāyāma.",
+      "benefits": ["Evens and slows the breath", "A calm, easy rhythm for beginners", "Prepares for longer retention ratios"],
+      "caution": "Keep every count comfortable; shorten the holds if the breath becomes strained.",
+      "unit": 4,
+      "phases": [
+        { "kind": "inhale", "units": 1, "bandhas": [] },
+        { "kind": "hold-in", "units": 1, "bandhas": ["mula", "jalandhara"] },
+        { "kind": "exhale", "units": 1, "bandhas": [] },
+        { "kind": "hold-out", "units": 1, "bandhas": ["mula", "uddiyana", "jalandhara"] }
+      ]
+    }
+  ]
+}
