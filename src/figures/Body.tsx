@@ -173,11 +173,11 @@ function Vertebrae() {
 }
 
 /** Back-view spinal column (Fig. 4.4): neck base to coccyx on x = 0, 26 vertebral bodies. */
-const BACK_SPINE = { top: -86, bottom: 152 };
+const BACK_SPINE = { top: -86, bottom: 142 }; // ends at Muladhara (145)
 function BackSpine({ faint = false }: { faint?: boolean }) {
   return (
     <g opacity={faint ? 0.55 : 1}>
-      <line x1={0} y1={BACK_SPINE.top} x2={0} y2={BACK_SPINE.bottom + 6} stroke="var(--body-detail)" strokeWidth={8} strokeLinecap="round" opacity={0.18} />
+      <line x1={0} y1={BACK_SPINE.top} x2={0} y2={BACK_SPINE.bottom + 3} stroke="var(--body-detail)" strokeWidth={8} strokeLinecap="round" opacity={0.18} />
       {VERTEBRAE.map((v, i) => (
         <g key={i} transform={`translate(0 ${BACK_SPINE.top + ((BACK_SPINE.bottom - BACK_SPINE.top) * i) / (VERTEBRAE.length - 1)})`}>
           <rect x={-v.w / 2} y={-2} width={v.w} height={4} rx={1.8} fill="color-mix(in oklab, var(--body-detail) 50%, transparent)" />

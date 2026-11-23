@@ -87,7 +87,7 @@ export const SIDE_BRAIN_FOLDS = [
   'M-14 -148 C-8 -156 8 -156 14 -147',
 ];
 
-/** Spine centre-line in profile (medulla → coccyx), through the side-view chakra points. */
+/** Spine centre-line in profile (medulla → Muladhara), through the side-view chakra points. */
 export const SIDE_SPINE_POINTS: [number, number][] = [
   [-10, -131],
   [-4, -114],
@@ -101,8 +101,7 @@ export const SIDE_SPINE_POINTS: [number, number][] = [
   [2, 100],
   [12.6, 120.7],
   [19, 138],
-  [21.5, 148.5],
-  [23, 158],
+  [21.5, 148.5], // Muladhara: the spine and Sushumna start here
 ];
 
 /* ------------------------------------------------------------------ BACK (Fig. 4.4) */
@@ -222,7 +221,7 @@ export function braidPoints(side: -1 | 1, samplesPerSeg = 18, ampScale = 1, phas
 
 export const IDA_PATH = smoothPath(braidPoints(-1));
 export const PINGALA_PATH = smoothPath(braidPoints(1));
-export const SUSHUMNA_FRONT = { x: 0, y1: 158, y2: -190 };
+export const SUSHUMNA_FRONT = { x: 0, y1: 145, y2: -190 }; // from Muladhara up to the crown
 export const SIDE_SPINE_PATH = smoothPath(SIDE_SPINE_POINTS);
 
 /** Evenly sample a polyline, giving point + unit tangent (for vertebra placement). */

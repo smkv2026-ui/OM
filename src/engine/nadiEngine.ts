@@ -571,7 +571,7 @@ export class NadiEngine {
     ctx.globalAlpha = 0.55;
     ctx.fillStyle = theme.bodyDetail;
     for (let i = 0; i < 26; i++) {
-      const y = -86 + (238 * i) / 25;
+      const y = -86 + (228 * i) / 25; // ends at Muladhara (y 145)
       const w = i < 7 ? 6 : i < 19 ? 7.5 : i < 24 ? 9.5 : 8 - (i - 24) * 2;
       ctx.beginPath();
       ctx.roundRect(-w / 2, y - 2, w, 4, 1.8);
@@ -589,7 +589,7 @@ export class NadiEngine {
     ctx.shadowBlur = 8;
     ctx.lineWidth = 2.4;
     ctx.beginPath();
-    ctx.moveTo(0, 160);
+    ctx.moveTo(0, 145);
     ctx.lineTo(0, -176);
     ctx.stroke();
     ctx.shadowBlur = 0;
@@ -820,7 +820,7 @@ export class NadiEngine {
     ctx.globalAlpha = 0.45 + a * 0.45;
     ctx.lineWidth = 2 + a * 2;
     ctx.beginPath();
-    ctx.moveTo(0, 160);
+    ctx.moveTo(0, 145);
     ctx.lineTo(0, -190);
     ctx.stroke();
     ctx.shadowBlur = 0;
