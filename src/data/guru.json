@@ -1,0 +1,19 @@
+{
+  "tabs": [
+    {
+      "id": "lineage",
+      "name": "Guru Lineage",
+      "about": "The lineage of the Gurus, held at the heart.",
+      "subtabs": [
+        {
+          "id": "babaji",
+          "name": "Sri Guru BabaJi",
+          "title": "Sri Guru BabaJi's Padukas",
+          "caption": "The Padukas of Sri Guru BabaJi on a lotus at the heart centre (Anāhata), golden nectar flowing from behind.",
+          "center": "anahata",
+          "art": { "lotus": "guru/lotus.webp", "padukas": "guru/padukas.webp" }
+        }
+      ]
+    }
+  ]
+}

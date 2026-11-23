@@ -813,7 +813,7 @@ export function CameraRig({ preset, nonce, reduce, autoRotate = false }: { prese
 
 export type LotusStyle = 'flat' | 'bloom' | 'simple';
 
-export function Scene({ layers, dark, onSelect, lotus = 'flat', kp = false }: { layers: Layers; dark: boolean; onSelect: (id: ChakraId) => void; lotus?: LotusStyle; kp?: boolean }) {
+export function Scene({ layers, dark, onSelect, lotus = 'flat', kp = false, hide = [] }: { layers: Layers; dark: boolean; onSelect: (id: ChakraId) => void; lotus?: LotusStyle; kp?: boolean; hide?: ChakraId[] }) {
   const ida = NADIS.find((n) => n.id === 'ida')!;
   const pingala = NADIS.find((n) => n.id === 'pingala')!;
   return (
@@ -829,7 +829,7 @@ export function Scene({ layers, dark, onSelect, lotus = 'flat', kp = false }: { 
       )}
       {layers.ida && <Braid side={-1} color={dark ? ida.color : ida.colorLight} />}
       {layers.pingala && <Braid side={1} color={dark ? pingala.color : pingala.colorLight} />}
-      {layers.chakras && CHAKRAS.filter((c) => !kp || (c.id !== 'muladhara' && c.id !== 'sahasrara')).map((c) => <ChakraNode key={c.id} c={c} dark={dark} onSelect={onSelect} om={layers.om} bloom={lotus === 'bloom'} simple={lotus === 'simple'} />)}
+      {layers.chakras && CHAKRAS.filter((c) => !hide.includes(c.id) && (!kp || (c.id !== 'muladhara' && c.id !== 'sahasrara'))).map((c) => <ChakraNode key={c.id} c={c} dark={dark} onSelect={onSelect} om={layers.om} bloom={lotus === 'bloom'} simple={lotus === 'simple'} />)}
       {!layers.chakras && layers.om && CHAKRAS.map((c) => (
         <group key={c.id} position={chakraPos(c)}>
           <OmSpokes c={c} dark={dark} />

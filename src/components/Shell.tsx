@@ -3,13 +3,14 @@ import { navigate, tabFor, useRoute, type TabId } from '../lib/router';
 import { useOnline } from '../lib/hooks';
 import { useSettings } from '../lib/store';
 import { toggleTheme } from '../lib/theme';
-import { BookIcon, CubeIcon, DownloadIcon, GearIcon, LotusIcon, MoonIcon, SunIcon, WavesIcon, WindIcon } from './Icons';
+import { BookIcon, CubeIcon, DownloadIcon, GearIcon, LotusIcon, MoonIcon, PadukaIcon, SunIcon, WavesIcon, WindIcon } from './Icons';
 
 export const TABS: { id: TabId; label: string; path: string; Icon: (p: { size?: number }) => ReactNode }[] = [
   { id: 'home', label: 'Home', path: '/', Icon: LotusIcon },
   { id: 'nadi', label: 'Nadi Harmony', path: '/nadi', Icon: WavesIcon },
   { id: 'prana', label: 'Prana', path: '/prana', Icon: WindIcon },
   { id: '3d', label: '3D', path: '/3d', Icon: CubeIcon },
+  { id: 'guru', label: 'Guru', path: '/guru', Icon: PadukaIcon },
   { id: 'library', label: 'Library', path: '/library', Icon: BookIcon },
 ];
 
