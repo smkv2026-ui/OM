@@ -9,6 +9,7 @@ import { PHASE_NAME, phaseAt, type PhaseKind, type Pranayama } from '../engine/k
 import { useIsDesktop, useReducedMotion } from '../lib/hooks';
 import { navigate } from '../lib/router';
 import { KPScene, kpFrame } from '../three/KPScene';
+import { KP2D } from './KP2D';
 import { CameraRig, Scene, type Layers, type LotusStyle, type Preset } from '../three/Scene';
 import { LayerChips } from '../components/LayerMenu';
 import { openChakra } from '../lib/store';
@@ -132,6 +133,8 @@ function KPView({ onLock }: { onLock: () => void }) {
   const [panel, setPanel] = useState(() => matchMedia('(min-width: 1024px)').matches);
   const reduce = useReducedMotion();
   const [preset, setPreset] = useState<Preset>('full');
+  const [flat, setFlat] = useState<boolean>(() => read('om-kp-2d', false));
+  useEffect(() => write('om-kp-2d', flat), [flat]);
   const [nonce, setNonce] = useState(0);
   const [showLayers, setShowLayers] = useState(false);
   const [layers, setLayers] = useState<Layers>(() => read('om-kp-layers', { body: true, chakras: true, sushumna: true, ida: true, pingala: true, spine: true, om: false, prana: false }));
@@ -223,13 +226,19 @@ function KPView({ onLock }: { onLock: () => void }) {
       />
       <div className="relative min-h-0 flex-1">
         <div className="absolute inset-0" role="img" aria-label="Suṣumṇā as a lotus stem from Mūlādhāra to the thousand-petal lotus at Sahasrāra, with a diamond moving with the breath.">
-          <Canvas dpr={[1, 1.75]} gl={{ antialias: true, powerPreference: 'high-performance' }} camera={{ fov: 38, near: 0.05, far: 200, position: [4, 2, 5] }} style={{ touchAction: 'none' }}>
-            <Suspense fallback={null}>
-              <Scene layers={layers} dark onSelect={openChakra} lotus={style} kp />
-              <KPScene lotusColor={color} stem={layers.sushumna} />
-              <CameraRig preset={preset} nonce={nonce} reduce={reduce} autoRotate={rotate} />
-            </Suspense>
-          </Canvas>
+          {flat ? (
+            <div className={`flex h-full w-full items-center justify-center ${desktop ? 'pt-2 pr-[380px] pb-16 pl-[250px]' : 'px-2 pt-10 pb-[150px]'}`}>
+              <KP2D time={t} layers={layers} style={style} color={color} onSelect={openChakra} />
+            </div>
+          ) : (
+            <Canvas dpr={[1, 1.75]} gl={{ antialias: true, powerPreference: 'high-performance' }} camera={{ fov: 38, near: 0.05, far: 200, position: [4, 2, 5] }} style={{ touchAction: 'none' }}>
+              <Suspense fallback={null}>
+                <Scene layers={layers} dark onSelect={openChakra} lotus={style} kp />
+                <KPScene lotusColor={color} stem={layers.sushumna} />
+                <CameraRig preset={preset} nonce={nonce} reduce={reduce} autoRotate={rotate} />
+              </Suspense>
+            </Canvas>
+          )}
         </div>
 
         {/* phase readout over the scene */}
@@ -305,22 +314,25 @@ function KPView({ onLock }: { onLock: () => void }) {
           )}
           <div className="pointer-events-auto flex w-full max-w-[560px] items-center gap-2">
             <div className="min-w-0 flex-1">
-              <Segmented<Preset>
+              <Segmented<Preset | '2d'>
                 label="Camera view"
-                value={preset}
+                value={flat ? '2d' : preset}
                 onChange={(v) => {
+                  if (v === '2d') return setFlat(true);
+                  setFlat(false);
                   setPreset(v);
                   setNonce((n) => n + 1);
                 }}
                 options={[
                   { value: 'front', label: 'Front' },
+                  { value: '2d', label: <span title="Front view as the 2D figure">2D</span> },
                   { value: 'back', label: 'Back' },
                   { value: 'side', label: 'Side' },
                   { value: 'full', label: <span className="whitespace-nowrap">Full 3D</span> },
                 ]}
               />
             </div>
-            <button className="btn btn-icon glass !rounded-2xl" onClick={() => setNonce((n) => n + 1)} aria-label="Reset camera" title="Reset camera">
+            <button className="btn btn-icon glass !rounded-2xl" onClick={() => setNonce((n) => n + 1)} disabled={flat} aria-label="Reset camera" title="Reset camera">
               <ResetIcon size={18} />
             </button>
             <button className="btn btn-icon glass !rounded-2xl" aria-pressed={showLayers} onClick={() => setShowLayers(!showLayers)} aria-label="Layers" title="Layers and chakra style">

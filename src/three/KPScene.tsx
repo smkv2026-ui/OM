@@ -38,7 +38,7 @@ const clamp = (x: number) => Math.max(0, Math.min(1, x));
 /* ------------------------------------------------------------------ the shared animation state */
 
 /** Everything the scene shows, derived from the phase each frame. */
-function look(kind: PhaseKind | 'idle', p: number) {
+export function look(kind: PhaseKind | 'idle', p: number) {
   switch (kind) {
     case 'inhale':
       return { d: ease(p), bloom: 0.15 + 0.25 * p, glow: 0.1 * p, light: ease(p), nectarTop: 0, nectarBottom: 0, pool: 0, ooze: 0 };
