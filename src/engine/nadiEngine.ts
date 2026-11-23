@@ -687,19 +687,25 @@ export class NadiEngine {
           ctx.stroke();
           break;
         case 'muladhara':
-          ctx.fillStyle = '#f2c230';
-          ctx.strokeStyle = '#d7263d';
-          ctx.rect(-7, y - 7, 14, 14);
+          // lying flat, seen a little from above: earth-yellow square, triangle tip toward the viewer (as in KP 2D)
+          ctx.save();
+          ctx.translate(0, y);
+          ctx.scale(0.5, 0.21);
+          ctx.beginPath();
+          ctx.rect(-20, -20, 40, 40);
+          ctx.fillStyle = '#e1a95f';
           ctx.fill();
-          ctx.lineWidth = 1.6;
+          ctx.lineWidth = 2.8;
+          ctx.strokeStyle = '#ffd77a';
           ctx.stroke();
           ctx.beginPath();
-          ctx.moveTo(-3.5, y - 2);
-          ctx.lineTo(3.5, y - 2);
-          ctx.lineTo(0, y + 3.5);
+          ctx.moveTo(-15, -9);
+          ctx.lineTo(15, -9);
+          ctx.lineTo(0, 18);
           ctx.closePath();
           ctx.fillStyle = '#d7263d';
           ctx.fill();
+          ctx.restore();
           break;
       }
     }

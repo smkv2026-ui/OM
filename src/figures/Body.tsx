@@ -578,8 +578,11 @@ export function SimpleGlyph({ chakra: c, x, y }: { chakra: Chakra; x: number; y:
       return (
         <g>
           {glow}
-          <rect x={x - 7} y={y - 7} width={14} height={14} fill="#f2c230" stroke="#d7263d" strokeWidth={1.4} />
-          <path d={`M${x - 3.5} ${y - 2} L${x + 3.5} ${y - 2} L${x} ${y + 3.5}Z`} fill="#d7263d" />
+          {/* lying flat, seen a little from above: earth-yellow square, triangle tip toward the viewer (as in KP 2D) */}
+          <g transform={`translate(${x} ${y}) scale(0.5 0.21)`}>
+            <rect x={-20} y={-20} width={40} height={40} fill="#e1a95f" stroke="#ffd77a" strokeWidth={2.8} />
+            <path d="M-15 -9L15 -9L0 18Z" fill="#d7263d" />
+          </g>
         </g>
       );
   }
