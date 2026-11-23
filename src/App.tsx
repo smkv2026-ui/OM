@@ -14,6 +14,7 @@ const NadiHarmony = lazy(() => import('./views/NadiHarmony'));
 const Prana = lazy(() => import('./views/Prana'));
 const Pranayama = lazy(() => import('./views/Pranayama'));
 const ThreeD = lazy(() => import('./views/ThreeD'));
+const KP = lazy(() => import('./views/KP'));
 const Library = lazy(() => import('./views/Library'));
 const Settings = lazy(() => import('./views/Settings'));
 const DevGallery = import.meta.env.DEV ? lazy(() => import('./views/DevGallery')) : null;
@@ -23,6 +24,7 @@ function View({ route }: { route: string }) {
   if (route.startsWith('/pranayama')) return <Pranayama />;
   if (route.startsWith('/prana')) return <Prana />;
   if (route.startsWith('/3d')) return <ThreeD />;
+  if (route.startsWith('/kp')) return <KP />;
   if (route.startsWith('/library')) return <Library route={route} />;
   if (route.startsWith('/settings')) return <Settings />;
   if (DevGallery && route.startsWith('/dev/yantras')) return <DevGallery />;

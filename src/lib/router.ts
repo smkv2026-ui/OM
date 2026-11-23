@@ -25,7 +25,7 @@ export type TabId = 'home' | 'nadi' | 'prana' | '3d' | 'library';
 export function tabFor(route: string): TabId | 'settings' {
   if (route.startsWith('/nadi')) return 'nadi';
   if (route.startsWith('/prana')) return 'prana';
-  if (route.startsWith('/3d')) return '3d';
+  if (route.startsWith('/3d') || route.startsWith('/kp')) return '3d';
   if (route.startsWith('/library')) return 'library';
   if (route.startsWith('/settings')) return 'settings';
   return 'home';

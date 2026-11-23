@@ -8,6 +8,7 @@ import { Segmented, Toggle } from '../components/ui';
 import { LayerChips } from '../components/LayerMenu';
 import { useIsDesktop, useReducedMotion } from '../lib/hooks';
 import { openChakra, useSettings } from '../lib/store';
+import { navigate } from '../lib/router';
 import { CameraRig, Scene, type Layers, type LotusStyle, type Preset } from '../three/Scene';
 
 const EXTRA_LAYERS: { key: keyof Layers; label: string }[] = [
@@ -173,6 +174,9 @@ export default function ThreeD() {
                     ]}
                   />
                 </div>
+                <button className="btn !min-h-9 !rounded-full !px-3 text-xs" onClick={() => navigate('/kp')} title="KP (password protected)">
+                  KP 🔒
+                </button>
               </div>
             </div>
           )}

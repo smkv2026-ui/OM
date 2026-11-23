@@ -111,7 +111,7 @@ function useGlass(dark: boolean, opts: { base: string; rim: string; alpha?: numb
 }
 
 let glowTex: THREE.Texture | null = null;
-function glowTexture() {
+export function glowTexture() {
   if (glowTex) return glowTex;
   const c = document.createElement('canvas');
   c.width = c.height = 128;
@@ -442,7 +442,8 @@ function SimpleSymbol({ c, groupRef }: { c: Chakra; groupRef: React.RefObject<TH
   return (
     <group ref={groupRef} position={[0, 0, 0.03]}>
       {c.id === 'muladhara' && (
-        <>
+        // stands in the side (sagittal) plane under the end of Sushumna, triangle tip pointing to the front
+        <group rotation={[0, Math.PI / 2, 0]}>
           <mesh position={[0, 0, -0.005]}>
             <boxGeometry args={[0.17, 0.17, 0.02]} />
             {mat('#d7263d')}
@@ -451,10 +452,13 @@ function SimpleSymbol({ c, groupRef }: { c: Chakra; groupRef: React.RefObject<TH
             <boxGeometry args={[0.14, 0.14, 0.03]} />
             {mat('#f2c230')}
           </mesh>
-          <mesh position={[0, -0.005, 0.02]} geometry={new THREE.ExtrudeGeometry(tri(4.5, false), { depth: 0.005, bevelEnabled: false })}>
+          <mesh position={[0, 0, 0.02]} rotation={[0, 0, -Math.PI / 2]} geometry={new THREE.ExtrudeGeometry(tri(4.5, false), { depth: 0.005, bevelEnabled: false })}>
             {mat('#d7263d')}
           </mesh>
-        </>
+          <mesh position={[0, 0, -0.03]} rotation={[0, Math.PI, Math.PI / 2]} geometry={new THREE.ExtrudeGeometry(tri(4.5, false), { depth: 0.005, bevelEnabled: false })}>
+            {mat('#d7263d')}
+          </mesh>
+        </group>
       )}
       {c.id === 'vishuddha' && (
         <mesh rotation={[Math.PI / 2, 0, 0]}>
@@ -606,7 +610,7 @@ function PranaFlows({ dark }: { dark: boolean }) {
 }
 
 /** Brilliant-cut profile (radius, height), girdle radius 1: table, two crown tiers, girdle, pavilion, culet. */
-const BRILLIANT: [number, number][] = [
+export const BRILLIANT: [number, number][] = [
   [0, 0.43],
   [0.56, 0.43],
   [0.79, 0.3],
@@ -618,7 +622,7 @@ const BRILLIANT: [number, number][] = [
 
 let envTex: THREE.Texture | null = null;
 /** Neutral studio reflections generated in code (no download — works offline). */
-function useDiamondEnv() {
+export function useDiamondEnv() {
   const { gl } = useThree();
   return useMemo(() => {
     if (!envTex) {
@@ -715,7 +719,7 @@ function Diamond({ dark }: { dark: boolean }) {
 
 let sparkTex: THREE.Texture | null = null;
 /** Four-point star for facet glints. */
-function sparkTexture() {
+export function sparkTexture() {
   if (sparkTex) return sparkTex;
   const c = document.createElement('canvas');
   c.width = c.height = 64;
