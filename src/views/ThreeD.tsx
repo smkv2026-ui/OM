@@ -9,6 +9,7 @@ import { LayerChips } from '../components/LayerMenu';
 import { useIsDesktop, useReducedMotion } from '../lib/hooks';
 import { openChakra, openNadi, useSettings } from '../lib/store';
 import { Body, ChakraGlyphs, IdaPingala, Sushumna } from '../figures/Body';
+import { Dharana2D } from './Dharana2D';
 import { navigate } from '../lib/router';
 import { CameraRig, Scene, type Layers, type LotusStyle, type Preset } from '../three/Scene';
 
@@ -88,7 +89,8 @@ export default function ThreeD() {
                 {layers.body && <Body view="front" spine={layers.spine} />}
                 {(layers.ida || layers.pingala) && <IdaPingala onPick={openNadi} ida={layers.ida} pingala={layers.pingala} />}
                 {layers.sushumna && <Sushumna view="front" />}
-                {layers.chakras && <ChakraGlyphs view="front" onSelect={openChakra} simple={lotus === 'simple'} />}
+                {layers.chakras && (dh.active ? <Dharana2D simple={lotus === 'simple'} onSelect={openChakra} /> : <ChakraGlyphs view="front" onSelect={openChakra} simple={lotus === 'simple'} />)}
+                {!layers.chakras && dh.active && <Dharana2D simple={lotus === 'simple'} onSelect={openChakra} />}
               </svg>
             </div>
           ) : fontsReady && (
@@ -107,7 +109,7 @@ export default function ThreeD() {
           )}
         </div>
 
-          {showDharana && !flat && (
+          {showDharana && (
             <div
               className={`glass-strong absolute z-20 flex flex-col gap-3 rounded-2xl p-3 ${desktop ? 'top-8 right-4 w-[400px]' : 'inset-x-3 bottom-[76px]'}`}
               role="group"
@@ -228,7 +230,7 @@ export default function ThreeD() {
             <button className="btn btn-icon glass !rounded-2xl" onClick={() => setNonce((n) => n + 1)} disabled={flat} aria-label="Reset camera" title="Reset camera">
               <ResetIcon size={18} />
             </button>
-            <button className="btn glass !min-h-11 !rounded-2xl !px-3 text-xs" aria-pressed={showDharana} onClick={() => setShowDharana(!showDharana)} disabled={flat} title="Chakra Dharana">
+            <button className="btn glass !min-h-11 !rounded-2xl !px-3 text-xs" aria-pressed={showDharana} onClick={() => setShowDharana(!showDharana)} title="Chakra Dharana">
               ◆ <span className="hidden sm:inline">Dharana</span>
             </button>
             <button className="btn btn-icon glass !rounded-2xl" aria-pressed={showLayers} onClick={() => setShowLayers(!showLayers)} aria-label="Layers" title="Layers">
