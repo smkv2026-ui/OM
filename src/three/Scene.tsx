@@ -43,13 +43,13 @@ const spineZAt = (y: number) => {
   return -P[P.length - 1][0];
 };
 /** Chakra position: anatomical height from the front figure; depth on the spinal curve (Fig. 5.1). Ajna and Sahasrara sit in the head. */
-const chakraPos = (c: Chakra) =>
+export const chakraPos = (c: Chakra) =>
   v3(0, c.position.frontY, c.id === 'ajna' || c.id === 'sahasrara' ? -c.position.sideX : spineZAt(c.position.frontY));
 
 /** Sushumna's centre line: the spinal curve from Muladhara up, continued through the head to the crown. */
 let sushumnaCurve: THREE.CatmullRomCurve3 | null = null;
 let sushumnaSamples: THREE.Vector3[] = [];
-function getSushumnaCurve() {
+export function getSushumnaCurve() {
   if (!sushumnaCurve) {
     const crown = CHAKRAS.find((c) => c.id === 'sahasrara')!;
     const pts = [...SIDE_SPINE_POINTS].reverse().map(([sx, y]) => v3(0, y, -sx));
@@ -442,8 +442,8 @@ function SimpleSymbol({ c, groupRef }: { c: Chakra; groupRef: React.RefObject<TH
   return (
     <group ref={groupRef} position={[0, 0, 0.03]}>
       {c.id === 'muladhara' && (
-        // stands in the side (sagittal) plane under the end of Sushumna, triangle tip pointing to the front
-        <group rotation={[0, Math.PI / 2, 0]}>
+        // lies flat (horizontal) at the root of Sushumna, triangle tip pointing to the front
+        <group rotation={[-Math.PI / 2, 0, 0]}>
           <mesh position={[0, 0, -0.005]}>
             <boxGeometry args={[0.17, 0.17, 0.02]} />
             {mat('#d7263d')}
@@ -452,10 +452,10 @@ function SimpleSymbol({ c, groupRef }: { c: Chakra; groupRef: React.RefObject<TH
             <boxGeometry args={[0.14, 0.14, 0.03]} />
             {mat('#f2c230')}
           </mesh>
-          <mesh position={[0, 0, 0.02]} rotation={[0, 0, -Math.PI / 2]} geometry={new THREE.ExtrudeGeometry(tri(4.5, false), { depth: 0.005, bevelEnabled: false })}>
+          <mesh position={[0, 0, 0.02]} geometry={new THREE.ExtrudeGeometry(tri(4.5, false), { depth: 0.005, bevelEnabled: false })}>
             {mat('#d7263d')}
           </mesh>
-          <mesh position={[0, 0, -0.03]} rotation={[0, Math.PI, Math.PI / 2]} geometry={new THREE.ExtrudeGeometry(tri(4.5, false), { depth: 0.005, bevelEnabled: false })}>
+          <mesh position={[0, 0, -0.03]} rotation={[0, Math.PI, 0]} geometry={new THREE.ExtrudeGeometry(tri(4.5, false), { depth: 0.005, bevelEnabled: false })}>
             {mat('#d7263d')}
           </mesh>
         </group>
@@ -759,7 +759,7 @@ function distFor(fov: number, aspect: number) {
   return h / vh;
 }
 
-export function CameraRig({ preset, nonce, reduce }: { preset: Preset; nonce: number; reduce: boolean }) {
+export function CameraRig({ preset, nonce, reduce, autoRotate = false }: { preset: Preset; nonce: number; reduce: boolean; autoRotate?: boolean }) {
   const { camera, size } = useThree();
   const controls = useRef<OrbitControlsImpl>(null);
   const tween = useRef<{ from: THREE.Vector3; fromFov: number; fromTarget: THREE.Vector3; t: number } | null>(null);
@@ -803,6 +803,8 @@ export function CameraRig({ preset, nonce, reduce }: { preset: Preset; nonce: nu
       minDistance={2}
       maxDistance={60}
       target={TARGET}
+      autoRotate={autoRotate}
+      autoRotateSpeed={0.5}
     />
   );
 }
@@ -811,7 +813,7 @@ export function CameraRig({ preset, nonce, reduce }: { preset: Preset; nonce: nu
 
 export type LotusStyle = 'flat' | 'bloom' | 'simple';
 
-export function Scene({ layers, dark, onSelect, lotus = 'flat' }: { layers: Layers; dark: boolean; onSelect: (id: ChakraId) => void; lotus?: LotusStyle }) {
+export function Scene({ layers, dark, onSelect, lotus = 'flat', kp = false }: { layers: Layers; dark: boolean; onSelect: (id: ChakraId) => void; lotus?: LotusStyle; kp?: boolean }) {
   const ida = NADIS.find((n) => n.id === 'ida')!;
   const pingala = NADIS.find((n) => n.id === 'pingala')!;
   return (
@@ -819,7 +821,7 @@ export function Scene({ layers, dark, onSelect, lotus = 'flat' }: { layers: Laye
       <ambientLight intensity={0.8} />
       <directionalLight position={[3, 4, 5]} intensity={1.2} />
       {layers.spine && <Spine dark={dark} />}
-      {layers.sushumna && (
+      {layers.sushumna && !kp && (
         <>
           <Sushumna dark={dark} />
           <SushumnaFlow dark={dark} />
@@ -827,14 +829,14 @@ export function Scene({ layers, dark, onSelect, lotus = 'flat' }: { layers: Laye
       )}
       {layers.ida && <Braid side={-1} color={dark ? ida.color : ida.colorLight} />}
       {layers.pingala && <Braid side={1} color={dark ? pingala.color : pingala.colorLight} />}
-      {layers.chakras && CHAKRAS.map((c) => <ChakraNode key={c.id} c={c} dark={dark} onSelect={onSelect} om={layers.om} bloom={lotus === 'bloom'} simple={lotus === 'simple'} />)}
+      {layers.chakras && CHAKRAS.filter((c) => !kp || (c.id !== 'muladhara' && c.id !== 'sahasrara')).map((c) => <ChakraNode key={c.id} c={c} dark={dark} onSelect={onSelect} om={layers.om} bloom={lotus === 'bloom'} simple={lotus === 'simple'} />)}
       {!layers.chakras && layers.om && CHAKRAS.map((c) => (
         <group key={c.id} position={chakraPos(c)}>
           <OmSpokes c={c} dark={dark} />
         </group>
       ))}
       {layers.prana && <PranaFlows dark={dark} />}
-      <Diamond dark={dark} />
+      {!kp && <Diamond dark={dark} />}
       {layers.body && <Body dark={dark} />}
     </>
   );

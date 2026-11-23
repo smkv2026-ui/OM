@@ -1,14 +1,17 @@
 import { Canvas } from '@react-three/fiber';
 import { Suspense, useEffect, useRef, useState } from 'react';
-import { PlayIcon, StopIcon } from '../components/Icons';
+import { LayersIcon, PlayIcon, ResetIcon, StopIcon } from '../components/Icons';
 import { TopBar } from '../components/Shell';
 import { fmt, Stepper } from '../components/Stepper';
-import { Toggle } from '../components/ui';
+import { Segmented, Toggle } from '../components/ui';
 import { playTone } from '../engine/audioContext';
 import { PHASE_NAME, phaseAt, type PhaseKind, type Pranayama } from '../engine/kumbhaka';
-import { useIsDesktop } from '../lib/hooks';
+import { useIsDesktop, useReducedMotion } from '../lib/hooks';
 import { navigate } from '../lib/router';
 import { KPScene, kpFrame } from '../three/KPScene';
+import { CameraRig, Scene, type Layers, type LotusStyle, type Preset } from '../three/Scene';
+import { LayerChips } from '../components/LayerMenu';
+import { openChakra } from '../lib/store';
 
 /* ------------------------------------------------------------------ lock */
 
@@ -127,6 +130,14 @@ function KPView({ onLock }: { onLock: () => void }) {
   const [t, setT] = useState(0);
   const [done, setDone] = useState<number | null>(null);
   const [panel, setPanel] = useState(() => matchMedia('(min-width: 1024px)').matches);
+  const reduce = useReducedMotion();
+  const [preset, setPreset] = useState<Preset>('full');
+  const [nonce, setNonce] = useState(0);
+  const [showLayers, setShowLayers] = useState(false);
+  const [layers, setLayers] = useState<Layers>(() => read('om-kp-layers', { body: true, chakras: true, sushumna: true, ida: true, pingala: true, spine: true, om: false, prana: false }));
+  const [style, setStyle] = useState<LotusStyle>(() => read<LotusStyle>('om-kp-style', 'flat'));
+  useEffect(() => write('om-kp-layers', layers), [layers]);
+  useEffect(() => write('om-kp-style', style), [style]);
   useEffect(() => write(PREFS, { ratio, unit, color, rotate, sound }), [ratio, unit, color, rotate, sound]);
 
   const pr: Pranayama = { id: 'kp', name: 'KP', deva: '', english: '', about: '', benefits: [], caution: '', unit, phases: KINDS.map((kind, i) => ({ kind, units: ratio[i], bandhas: [] })) };
@@ -212,9 +223,11 @@ function KPView({ onLock }: { onLock: () => void }) {
       />
       <div className="relative min-h-0 flex-1">
         <div className="absolute inset-0" role="img" aria-label="Suṣumṇā as a lotus stem from Mūlādhāra to the thousand-petal lotus at Sahasrāra, with a diamond moving with the breath.">
-          <Canvas dpr={[1, 1.75]} gl={{ antialias: true, powerPreference: 'high-performance' }} camera={{ fov: 40, near: 0.05, far: 100, position: [3.0, 5.6, 5.0] }} style={{ touchAction: 'none' }}>
+          <Canvas dpr={[1, 1.75]} gl={{ antialias: true, powerPreference: 'high-performance' }} camera={{ fov: 38, near: 0.05, far: 200, position: [4, 2, 5] }} style={{ touchAction: 'none' }}>
             <Suspense fallback={null}>
-              <KPScene lotusColor={color} autoRotate={rotate} />
+              <Scene layers={layers} dark onSelect={openChakra} lotus={style} kp />
+              <KPScene lotusColor={color} stem={layers.sushumna} />
+              <CameraRig preset={preset} nonce={nonce} reduce={reduce} autoRotate={rotate} />
             </Suspense>
           </Canvas>
         </div>
@@ -276,6 +289,45 @@ function KPView({ onLock }: { onLock: () => void }) {
             </div>
           </div>
         )}
+
+        {/* camera + layers */}
+        <div className={`pointer-events-none absolute z-20 flex flex-col items-center gap-2 ${desktop ? 'inset-x-0 bottom-3 px-3' : 'inset-x-2 bottom-[136px]'}`}>
+          {showLayers && (
+            <div className="glass pointer-events-auto flex max-w-[560px] flex-col gap-2 rounded-2xl p-2" role="group" aria-label="Layers">
+              <LayerChips value={layers} onChange={setLayers} extra={[{ key: 'body', label: 'Body' }, { key: 'om', label: 'Om glyphs' }, { key: 'prana', label: 'Prāṇa flows' }]} />
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted">Chakra style</span>
+                <div className="flex-1">
+                  <Segmented<LotusStyle> label="Chakra style" size="sm" value={style} onChange={setStyle} options={[{ value: 'flat', label: 'Flat' }, { value: 'bloom', label: 'Bloom' }, { value: 'simple', label: 'Simple' }]} />
+                </div>
+              </div>
+            </div>
+          )}
+          <div className="pointer-events-auto flex w-full max-w-[560px] items-center gap-2">
+            <div className="min-w-0 flex-1">
+              <Segmented<Preset>
+                label="Camera view"
+                value={preset}
+                onChange={(v) => {
+                  setPreset(v);
+                  setNonce((n) => n + 1);
+                }}
+                options={[
+                  { value: 'front', label: 'Front' },
+                  { value: 'back', label: 'Back' },
+                  { value: 'side', label: 'Side' },
+                  { value: 'full', label: <span className="whitespace-nowrap">Full 3D</span> },
+                ]}
+              />
+            </div>
+            <button className="btn btn-icon glass !rounded-2xl" onClick={() => setNonce((n) => n + 1)} aria-label="Reset camera" title="Reset camera">
+              <ResetIcon size={18} />
+            </button>
+            <button className="btn btn-icon glass !rounded-2xl" aria-pressed={showLayers} onClick={() => setShowLayers(!showLayers)} aria-label="Layers" title="Layers and chakra style">
+              <LayersIcon size={18} />
+            </button>
+          </div>
+        </div>
 
         {/* controls */}
         <div className={`absolute z-20 ${desktop ? 'top-3 right-3 w-[360px]' : 'inset-x-2 bottom-[74px]'}`}>

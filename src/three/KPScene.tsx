@@ -7,7 +7,7 @@
  *   hold out  — it rests at Mūlādhāra, which glows with the gathered nectar
  * Driven by `kpFrame`, which the view updates every frame.
  */
-import { OrbitControls, Sparkles, Stars } from '@react-three/drei';
+import { Sparkles, Stars } from '@react-three/drei';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
@@ -17,11 +17,18 @@ import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import type { PhaseKind } from '../engine/kumbhaka';
-import { BRILLIANT, glowTexture, sparkTexture, useDiamondEnv } from './Scene';
+import { CHAKRAS } from '../data';
+import { BRILLIANT, chakraPos, getSushumnaCurve, glowTexture, sparkTexture, useDiamondEnv } from './Scene';
 
 export const kpFrame: { kind: PhaseKind | 'idle'; p: number } = { kind: 'idle', p: 0 };
 
-const H = 3.2; // stem height (Mūlādhāra at y = 0, Sahasrāra at y = H)
+/** Mūlādhāra and Sahasrāra on the body's Suṣumṇā (world units, the 3D figure's frame). */
+const M = chakraPos(CHAKRAS.find((c) => c.id === 'muladhara')!);
+const T = chakraPos(CHAKRAS.find((c) => c.id === 'sahasrara')!);
+/** sizes relative to the original standalone design (stem 3.2 tall) */
+const LK = 0.4; // lotus
+const MK = 0.3; // Mūlādhāra plate
+const DK = 0.45; // diamond
 const EARTH_YELLOW = '#e1a95f';
 const RED = '#d7263d';
 const GOLD = new THREE.Color('#ffc94a');
@@ -54,11 +61,19 @@ const cur: { L: Look } = { L: look('idle', 0) };
 
 /* ------------------------------------------------------------------ stem (Suṣumṇā) */
 
-const STEM = new THREE.CatmullRomCurve3([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0.03, H * 0.33, 0.02), new THREE.Vector3(-0.025, H * 0.66, -0.015), new THREE.Vector3(0, H, 0)]);
+/** the stem follows Suṣumṇā's own centre line from Mūlādhāra up to the crown */
+const STEM = (() => {
+  const inner = getSushumnaCurve()
+    .getSpacedPoints(300)
+    .filter((q) => q.y > M.y + 0.05 && q.y < T.y - 0.05)
+    .sort((a, b) => a.y - b.y)
+    .filter((_, i) => i % 12 === 0);
+  return new THREE.CatmullRomCurve3([M.clone(), ...inner, T.clone()]);
+})();
 
 function Stem() {
-  const outer = useMemo(() => new THREE.TubeGeometry(STEM, 160, 0.055, 20, false), []);
-  const inner = useMemo(() => new THREE.TubeGeometry(STEM, 160, 0.02, 12, false), []);
+  const outer = useMemo(() => new THREE.TubeGeometry(STEM, 200, 0.026, 18, false), []);
+  const inner = useMemo(() => new THREE.TubeGeometry(STEM, 200, 0.009, 10, false), []);
   const mat = useMemo(
     () =>
       new THREE.ShaderMaterial({
@@ -130,12 +145,12 @@ function Muladhara() {
     if (plate.current) plate.current.emissiveIntensity = 0.25 + 1.1 * L.pool;
   });
   return (
-    <group>
+    <group position={M} scale={MK}>
       <sprite scale={[1.9, 1.9, 1]}>
         <spriteMaterial ref={glow} map={glowTexture()} color="#ff7a2c" transparent opacity={0.3} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
       </sprite>
-      {/* stands in the side (sagittal) plane, triangle tip pointing to the front */}
-      <group rotation={[0, Math.PI / 2, 0]}>
+      {/* lies flat (horizontal), triangle tip pointing to the front */}
+      <group rotation={[-Math.PI / 2, 0, 0]}>
         <mesh>
           <boxGeometry args={[0.8, 0.8, 0.05]} />
           <meshStandardMaterial ref={plate} color={EARTH_YELLOW} emissive={EARTH_YELLOW} emissiveIntensity={0.25} roughness={0.55} metalness={0.15} />
@@ -146,7 +161,7 @@ function Muladhara() {
           <lineBasicMaterial color="#ffd77a" transparent opacity={0.8} />
         </lineSegments>
         {[1, -1].map((s) => (
-          <mesh key={s} geometry={tri} position={[0, 0, s * 0.026]} rotation={[0, s === 1 ? 0 : Math.PI, 0]} scale={[s, 1, 1]}>
+          <mesh key={s} geometry={tri} position={[0, 0, s * 0.026]} rotation={[0, s === 1 ? 0 : Math.PI, Math.PI / 2]}>
             <meshStandardMaterial color={RED} emissive={RED} emissiveIntensity={0.55} roughness={0.4} />
           </mesh>
         ))}
@@ -245,11 +260,11 @@ function Lotus({ color }: { color: string }) {
     if (m.instanceColor) m.instanceColor.needsUpdate = true;
   });
   return (
-    <group position={[0, H, 0]}>
+    <group position={T} scale={LK}>
       <sprite scale={[2.4, 2.4, 1]} position={[0, 0.15, 0]}>
         <spriteMaterial ref={halo} map={glowTexture()} color="#ffd36a" transparent opacity={0.15} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
       </sprite>
-      <pointLight ref={light} color="#ffcf6a" intensity={0.6} distance={4} position={[0, 0.25, 0]} />
+      <pointLight ref={light} color="#ffcf6a" intensity={0.6} distance={2} position={[0, 0.25, 0]} />
       <instancedMesh ref={mesh} args={[geo, undefined, 1000]}>
         <meshStandardMaterial ref={mat} vertexColors side={THREE.DoubleSide} emissive="#ffb43a" emissiveIntensity={0.12} roughness={0.45} metalness={0.05} />
       </instancedMesh>
@@ -284,7 +299,7 @@ function Nectar() {
         vertexShader: /* glsl */ `
           attribute float life; varying float vL; uniform float scale;
           void main(){ vL = life; vec4 mv = modelViewMatrix * vec4(position,1.0);
-            gl_PointSize = (life > 0.0 ? (0.035 + 0.035 * min(life, 1.0)) : 0.0) * scale / -mv.z; gl_Position = projectionMatrix * mv; }`,
+            gl_PointSize = (life > 0.0 ? (0.016 + 0.016 * min(life, 1.0)) : 0.0) * scale / -mv.z; gl_Position = projectionMatrix * mv; }`,
         fragmentShader: /* glsl */ `
           uniform sampler2D map; varying float vL;
           void main(){ if (vL <= 0.0) discard; vec4 t = texture2D(map, gl_PointCoord);
@@ -309,26 +324,26 @@ function Nectar() {
     while (st.acc > 1) {
       st.acc -= 1;
       if (L.ooze > 0.01 && (kpFrame.kind === 'hold-in' || Math.random() < L.ooze)) {
-        const a = Math.random() * Math.PI * 2, sp = 0.25 + Math.random() * 0.7;
-        spawn(Math.cos(a) * 0.05, H + 0.1, Math.sin(a) * 0.05, Math.cos(a) * sp, 0.35 + Math.random() * 0.4, Math.sin(a) * sp, 2 + Math.random() * 1.6);
+        const a = Math.random() * Math.PI * 2, sp = (0.25 + Math.random() * 0.7) * LK;
+        spawn(T.x + Math.cos(a) * 0.02, T.y + 0.04, T.z + Math.sin(a) * 0.02, Math.cos(a) * sp, (0.35 + Math.random() * 0.4) * LK, Math.sin(a) * sp, 2 + Math.random() * 1.6);
       }
       if (kpFrame.kind === 'exhale') {
         // nectar flowing down with the diamond
         STEM.getPointAt(Math.max(0, Math.min(1, L.d)), diamondPos);
-        const a = Math.random() * Math.PI * 2, r = 0.03 + Math.random() * 0.05;
-        spawn(diamondPos.x + Math.cos(a) * r, diamondPos.y + Math.random() * 0.25, diamondPos.z + Math.sin(a) * r, 0, -0.25 - Math.random() * 0.3, 0, 0.8 + Math.random() * 0.6);
+        const a = Math.random() * Math.PI * 2, r = 0.012 + Math.random() * 0.025;
+        spawn(diamondPos.x + Math.cos(a) * r, diamondPos.y + Math.random() * 0.12, diamondPos.z + Math.sin(a) * r, 0, -0.12 - Math.random() * 0.15, 0, 0.8 + Math.random() * 0.6);
       }
     }
     for (let i = 0; i < N; i++) {
       if (st.life[i] <= 0) continue;
       st.life[i] -= dt * 0.6;
-      st.vel[i * 3 + 1] -= dt * 0.9; // gravity
+      st.vel[i * 3 + 1] -= dt * 0.4; // gravity
       st.vel[i * 3] *= 1 - dt * 0.4;
       st.vel[i * 3 + 2] *= 1 - dt * 0.4;
       st.pos[i * 3] += st.vel[i * 3] * dt;
       st.pos[i * 3 + 1] += st.vel[i * 3 + 1] * dt;
       st.pos[i * 3 + 2] += st.vel[i * 3 + 2] * dt;
-      if (st.pos[i * 3 + 1] < -0.4) st.life[i] = 0;
+      if (st.pos[i * 3 + 1] < M.y - 0.35) st.life[i] = 0;
     }
     geo.attributes.position.needsUpdate = true;
     geo.attributes.life.needsUpdate = true;
@@ -367,7 +382,7 @@ function Diamond() {
   useFrame(({ clock }, dt) => {
     const L = cur.L;
     STEM.getPointAt(Math.max(0, Math.min(1, L.d)), p);
-    ref.current?.position.copy(p).add(new THREE.Vector3(0, L.d > 0.98 ? 0.08 : 0, 0));
+    ref.current?.position.copy(p).add(new THREE.Vector3(0, L.d > 0.98 ? 0.035 : 0, 0));
     if (gem.current) gem.current.rotation.y += dt * 0.8;
     if (halo.current) halo.current.opacity = 0.22 + 0.25 * Math.max(L.light, L.glow);
     const t = clock.elapsedTime;
@@ -381,6 +396,7 @@ function Diamond() {
   });
   return (
     <group ref={ref}>
+      <group scale={DK}>
       <sprite scale={[0.7, 0.7, 1]}>
         <spriteMaterial ref={halo} map={glowTexture()} color="#e8f6ff" transparent opacity={0.4} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
       </sprite>
@@ -399,6 +415,7 @@ function Diamond() {
           <spriteMaterial map={sparkTexture()} transparent opacity={0} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
         </sprite>
       ))}
+      </group>
     </group>
   );
 }
@@ -438,26 +455,22 @@ function Bloom({ strength }: { strength: number }) {
   return null;
 }
 
-export function KPScene({ lotusColor, autoRotate }: { lotusColor: string; autoRotate: boolean }) {
+/** The KP layer: drawn inside the normal 3D scene (body, spine, nāḍīs and the other chakras come from there). */
+export function KPScene({ lotusColor, stem = true }: { lotusColor: string; stem?: boolean }) {
   useFrame(() => {
     cur.L = look(kpFrame.kind, kpFrame.p);
   }, -1);
   return (
     <>
       <color attach="background" args={['#04030c']} />
-      <fog attach="fog" args={['#04030c', 7, 16]} />
-      <ambientLight intensity={0.45} />
-      <directionalLight position={[2, 7, 3]} intensity={1.4} />
-      <directionalLight position={[-4, 2, -3]} intensity={0.35} color="#9fb0ff" />
       <Stars radius={40} depth={30} count={2500} factor={3} saturation={0} fade speed={0.4} />
-      <Sparkles count={70} scale={[3, 4, 3]} position={[0, H / 2, 0]} size={2.2} speed={0.25} opacity={0.5} color="#ffe2a0" />
+      <Sparkles count={60} scale={[2, 3.6, 2]} position={[0, (M.y + T.y) / 2, 0]} size={1.8} speed={0.25} opacity={0.45} color="#ffe2a0" />
       <Muladhara />
-      <Stem />
+      {stem && <Stem />}
       <Lotus color={lotusColor} />
       <Nectar />
       <Diamond />
-      <OrbitControls target={[0, H / 2 + 0.1, 0]} enableDamping dampingFactor={0.08} minDistance={1.5} maxDistance={12} autoRotate={autoRotate} autoRotateSpeed={0.5} />
-      <Bloom strength={0.55} />
+      <Bloom strength={0.5} />
     </>
   );
 }
