@@ -144,7 +144,8 @@ export function KP2D({ time, layers, style, color, onSelect }: { time: number; l
       </g>
 
       {/* the diamond */}
-      <g transform={`translate(0 ${dy - (L.d > 0.98 ? 6 : 0)})`}>
+      {/* bottom tip (at +11) touches the stem point: at rest, the middle of Mūlādhāra's triangle */}
+      <g transform={`translate(0 ${dy - 11 - (L.d > 0.98 ? 6 : 0)})`}>
         <circle r={16 + 6 * Math.max(L.light, L.glow)} fill="url(#kp2-gem)" opacity={0.8} />
         <g transform={`scale(${1 + 0.04 * Math.sin(time * 3)})`}>
           <path d="M-10 -3L-5.5 -8.5L5.5 -8.5L10 -3L0 11Z" fill="#f4f8ff" stroke="#8fb3d1" strokeWidth={0.7} strokeLinejoin="round" />

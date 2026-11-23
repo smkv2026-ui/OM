@@ -382,7 +382,9 @@ function Diamond() {
   useFrame(({ clock }, dt) => {
     const L = cur.L;
     STEM.getPointAt(Math.max(0, Math.min(1, L.d)), p);
-    ref.current?.position.copy(p).add(new THREE.Vector3(0, L.d > 0.98 ? 0.035 : 0, 0));
+    // lifted so the pavilion's bottom tip (0.86 below the centre, tilted 0.3 rad) touches the stem point —
+    // at rest, the middle of Mūlādhāra's triangle on top of the plate
+    ref.current?.position.copy(p).add(new THREE.Vector3(0, 0.86 * Math.cos(0.3) * 0.16 * DK + 0.026 * MK + (L.d > 0.98 ? 0.035 : 0), 0));
     if (gem.current) gem.current.rotation.y += dt * 0.8;
     if (halo.current) halo.current.opacity = 0.22 + 0.25 * Math.max(L.light, L.glow);
     const t = clock.elapsedTime;

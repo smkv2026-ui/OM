@@ -7,7 +7,8 @@ import { TopBar } from '../components/Shell';
 import { Segmented, Toggle } from '../components/ui';
 import { LayerChips } from '../components/LayerMenu';
 import { useIsDesktop, useReducedMotion } from '../lib/hooks';
-import { openChakra, useSettings } from '../lib/store';
+import { openChakra, openNadi, useSettings } from '../lib/store';
+import { Body, ChakraGlyphs, IdaPingala, Sushumna } from '../figures/Body';
 import { navigate } from '../lib/router';
 import { CameraRig, Scene, type Layers, type LotusStyle, type Preset } from '../three/Scene';
 
@@ -22,6 +23,21 @@ export default function ThreeD() {
   const reduce = useReducedMotion();
   const desktop = useIsDesktop();
   const [preset, setPreset] = useState<Preset>('full');
+  const [flat, setFlatState] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('om-3d-2d') === '1';
+    } catch {
+      return false;
+    }
+  });
+  const setFlat = (v: boolean) => {
+    setFlatState(v);
+    try {
+      localStorage.setItem('om-3d-2d', v ? '1' : '0');
+    } catch {
+      /* storage unavailable */
+    }
+  };
   const [nonce, setNonce] = useState(0);
   const [layers, setLayers] = useState<Layers>({ body: true, chakras: true, sushumna: true, ida: true, pingala: true, spine: true, om: false, prana: false });
   const [fontsReady, setFontsReady] = useState(false);
@@ -66,7 +82,16 @@ export default function ThreeD() {
       <TopBar title="3D Subtle Body" subtitle="Drag to orbit · pinch or scroll to zoom · two fingers / right-drag to pan" />
       <div className="relative min-h-0 flex-1">
         <div className="absolute inset-0" role="img" aria-label="Interactive 3D model of the seated figure with spine, Sushumna, Ida, Pingala and the seven chakras. Tap a chakra for details.">
-          {fontsReady && (
+          {flat ? (
+            <div className={`flex h-full w-full items-center justify-center ${desktop ? 'px-6 pt-6 pb-20' : 'px-2 pt-6 pb-[150px]'}`}>
+              <svg viewBox="-215 -212 430 404" className="h-full w-full">
+                {layers.body && <Body view="front" spine={layers.spine} />}
+                {(layers.ida || layers.pingala) && <IdaPingala onPick={openNadi} ida={layers.ida} pingala={layers.pingala} />}
+                {layers.sushumna && <Sushumna view="front" />}
+                {layers.chakras && <ChakraGlyphs view="front" onSelect={openChakra} simple={lotus === 'simple'} />}
+              </svg>
+            </div>
+          ) : fontsReady && (
             <Canvas
               dpr={[1, 1.5]}
               gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
@@ -82,7 +107,7 @@ export default function ThreeD() {
           )}
         </div>
 
-          {showDharana && (
+          {showDharana && !flat && (
             <div
               className={`glass-strong absolute z-20 flex flex-col gap-3 rounded-2xl p-3 ${desktop ? 'top-8 right-4 w-[400px]' : 'inset-x-3 bottom-[76px]'}`}
               role="group"
@@ -182,25 +207,28 @@ export default function ThreeD() {
           )}
           <div className="pointer-events-auto flex w-full max-w-[560px] items-center gap-2">
             <div className="min-w-0 flex-1">
-              <Segmented<Preset>
+              <Segmented<Preset | '2d'>
                 label="Camera view"
-                value={preset}
+                value={flat ? '2d' : preset}
                 onChange={(p) => {
+                  if (p === '2d') return setFlat(true);
+                  setFlat(false);
                   setPreset(p);
                   setNonce((n) => n + 1);
                 }}
                 options={[
                   { value: 'front', label: 'Front' },
+                  { value: '2d', label: <span title="Front view as the 2D figure">2D</span> },
                   { value: 'back', label: 'Back' },
                   { value: 'side', label: 'Side' },
                   { value: 'full', label: <span className="whitespace-nowrap">Full 3D</span> },
                 ]}
               />
             </div>
-            <button className="btn btn-icon glass !rounded-2xl" onClick={() => setNonce((n) => n + 1)} aria-label="Reset camera" title="Reset camera">
+            <button className="btn btn-icon glass !rounded-2xl" onClick={() => setNonce((n) => n + 1)} disabled={flat} aria-label="Reset camera" title="Reset camera">
               <ResetIcon size={18} />
             </button>
-            <button className="btn glass !min-h-11 !rounded-2xl !px-3 text-xs" aria-pressed={showDharana} onClick={() => setShowDharana(!showDharana)} title="Chakra Dharana">
+            <button className="btn glass !min-h-11 !rounded-2xl !px-3 text-xs" aria-pressed={showDharana} onClick={() => setShowDharana(!showDharana)} disabled={flat} title="Chakra Dharana">
               ◆ <span className="hidden sm:inline">Dharana</span>
             </button>
             <button className="btn btn-icon glass !rounded-2xl" aria-pressed={showLayers} onClick={() => setShowLayers(!showLayers)} aria-label="Layers" title="Layers">
